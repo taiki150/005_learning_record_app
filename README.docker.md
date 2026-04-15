@@ -94,3 +94,14 @@ docker compose down
 - `.env` の `DB_HOST` が `mariadb` になっているか確認してください
 - `docker compose up -d` のあと、1〜2 分待ってから再度アクセスしてみてください
 - `docker compose ps` で、各コンテナが起動しているか確認できます
+
+---
+
+## Docker使用コマンド
+
+### Seederの実行
+```bash
+docker compose exec php php artisan db:seed --class=UsersTableSeeder"
+```
+ 
+---
