@@ -6,13 +6,16 @@ RUN apk add --no-cache \
     icu-dev \
     oniguruma-dev \
     linux-headers \
-    curl
+    curl \
+    nodejs \
+    npm
 
 RUN docker-php-ext-install \
     pdo_mysql \
     zip \
     intl \
     mbstring \
+    bcmath \
     opcache
 
 RUN apk add --no-cache $PHPIZE_DEPS \

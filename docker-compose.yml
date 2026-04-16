@@ -13,6 +13,9 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
+    ports:
+      # Vite dev server (npm run dev) — must reach host localhost:5173 when public/hot exists
+      - "5173:5173"
     volumes:
       - .:/var/www/html
     environment:
