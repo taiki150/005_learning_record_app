@@ -12,13 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('learning_record_details', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
 
-            $table->foreignId('learning_record_id')
+            $table->foreignUuid('learning_record_id')
             ->constrained()
             ->onDelete('cascade');
 
-            $table->foreignId('category_id')
+            $table->foreignUuid('category_id')
             ->constrained()
             ->onDelete('cascade');
 
