@@ -1,7 +1,53 @@
+'use client';
+
+import { use } from "react";
+import { log } from 'console';
 import Link from 'next/link'
 
+import { useRouter } from "next/navigation";
 
-export default function userRegistPage(){
+
+export default function UserRegistPage() {
+    const router = useRouter();
+
+
+
+    async function userCreateSubmit(event: React.FormEvent<HTMLFormElement>) {
+        event.preventDefault()
+
+        const form = event.currentTarget
+        const fd = new FormData(form)
+
+        const name = fd.get("name") as string;
+        const email = fd.get("email") as string;
+        const birthday = fd.get("birthday") as Date | null;
+        const password = fd.get("password") as string;
+        const passwordConfirm = fd.get("password_confirm") as string;
+
+        const payload = {
+            name,
+            email,
+            birthday,
+            password,
+            password_confirmation: passwordConfirm,
+        };
+
+            const res = await fetch("http://localhost:8080/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+            const text = await res.text();
+            console.error("register failed", res.status, text);
+            return;
+        }
+
+        router.push("/user/auth/login");
+        
+    }
+
     return(
         <div className="min-w-xs w-md rounded-card border-inherit border-line bg-white shadow-[0_4px_20px_rgba(0,0,0,0.07)] m-auto">
 
@@ -10,7 +56,7 @@ export default function userRegistPage(){
                 <p className="mt-1 text-[13px] text-slate-500">必要事項を入力してアカウントを作成してください。</p>
             </div>
 
-            <form className="space-y-5 px-6 py-6 sm:px-8 sm:py-7" action="#" method="post">
+            <form className="space-y-5 px-6 py-6 sm:px-8 sm:py-7" onSubmit={userCreateSubmit} method="POST">
 
                 <div>
                     <label className="mb-1.5 block text-[13px] font-medium text-ink">名前</label>
