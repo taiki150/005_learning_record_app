@@ -1,11 +1,11 @@
 'use client';
 
-import { use } from "react";
-import { log } from 'console';
 import Link from 'next/link'
 
 import { useRouter } from "next/navigation";
 
+const apiBaseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
 export default function UserRegistPage() {
     const router = useRouter();
@@ -20,7 +20,7 @@ export default function UserRegistPage() {
 
         const name = fd.get("name") as string;
         const email = fd.get("email") as string;
-        const birthday = fd.get("birthday") as Date | null;
+        const birthday = fd.get("birthday") as string;
         const password = fd.get("password") as string;
         const passwordConfirm = fd.get("password_confirm") as string;
 
@@ -32,19 +32,35 @@ export default function UserRegistPage() {
             password_confirmation: passwordConfirm,
         };
 
-            const res = await fetch("http://localhost:8080/register", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+        console.log("ここまでOK");
+        
+
+        const res = await fetch(`${apiBaseUrl}/api/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify(payload),
         });
 
-        if (!res.ok) {
-            const text = await res.text();
-            console.error("register failed", res.status, text);
+        const raw = await res.text();
+        let data: { message?: string; user?: { name?: string } } = {};
+        try {
+            data = raw ? JSON.parse(raw) : {};
+        } catch {
+            console.error("登録失敗: JSON でないレスポンス", res.status, raw.slice(0, 200));
             return;
         }
 
-        router.push("/user/auth/login");
+        console.log("サーバーからの返り値（data）:", data);
+
+        if (!res.ok) {
+            console.error("登録失敗ステータス:", res.status);
+            console.error("Laravelからのメッセージ:", data?.message || "不明なエラー");
+            return;
+        }
+
+        console.log("登録成功！届いた名前は:", data.user?.name);
+
+        // router.push("/user/auth/login");
         
     }
 
