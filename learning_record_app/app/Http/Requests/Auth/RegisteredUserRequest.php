@@ -26,7 +26,7 @@ class RegisteredUserRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'unique:users,email'],
             'birthday' => ['required', 'date'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', 'min:8', 'confirmed', 'regex:/(?=.*[A-Z])/'],
             'password_confirmation' => ['required', 'string'],
         ];
     }

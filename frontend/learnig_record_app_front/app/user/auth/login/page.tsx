@@ -1,7 +1,26 @@
+'use client'
 import Link from 'next/link'
+
+import { useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 
 
 export default function userLoginPage(){
+
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const toastDisplayFlg = useRef(false);
+
+    useEffect(() => {
+        if(searchParams.get("registered") === "1" && !toastDisplayFlg.current){
+            toastDisplayFlg.current = true;
+            toast.success("登録が完了しました！ログインしてください。");
+
+            router.replace("/user/auth/login");
+        }
+    }, [router, searchParams]);
+
     return(
         <div className="min-w-xs w-md rounded-card border-inherit border-line bg-white shadow-[0_4px_20px_rgba(0,0,0,0.07)] m-auto">
 

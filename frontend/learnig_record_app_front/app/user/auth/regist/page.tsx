@@ -1,6 +1,8 @@
 'use client';
 
+import { log } from 'console';
 import Link from 'next/link'
+import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -9,6 +11,13 @@ const apiBaseUrl =
 
 export default function UserRegistPage() {
     const router = useRouter();
+    const [errors, setErrors] = useState<{
+        birthday?: string[];
+        email?: string[];
+        name?: string[];
+        password?: string[];
+        password_confirmation?: string[];
+    }>({});
 
 
 
@@ -32,9 +41,6 @@ export default function UserRegistPage() {
             password_confirmation: passwordConfirm,
         };
 
-        console.log("ここまでOK");
-        
-
         const res = await fetch(`${apiBaseUrl}/api/register`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -42,7 +48,13 @@ export default function UserRegistPage() {
         });
 
         const raw = await res.text();
-        let data: { message?: string; user?: { name?: string } } = {};
+        let data: { message?: string; errors?: {
+                birthday?: string[];
+                email?: string[];
+                name?: string[];
+                password?: string[];
+                password_confirmation?: string[];},
+             user?: { name?: string } } = {};
         try {
             data = raw ? JSON.parse(raw) : {};
         } catch {
@@ -50,17 +62,16 @@ export default function UserRegistPage() {
             return;
         }
 
-        console.log("サーバーからの返り値（data）:", data);
-
         if (!res.ok) {
-            console.error("登録失敗ステータス:", res.status);
-            console.error("Laravelからのメッセージ:", data?.message || "不明なエラー");
+            // console.error("登録失敗ステータス:", res.status);
+            // console.error("Laravelからのメッセージ:", data?.message || "不明なエラー");
+            if(res.status === 422 && data?.errors){
+                setErrors(data.errors);
+            }
             return;
         }
 
-        console.log("登録成功！届いた名前は:", data.user?.name);
-
-        // router.push("/user/auth/login");
+        router.push("/user/auth/login?registered=1");
         
     }
 
@@ -76,28 +87,33 @@ export default function UserRegistPage() {
 
                 <div>
                     <label className="mb-1.5 block text-[13px] font-medium text-ink">名前</label>
-                    <input id="name" name="name" type="text" required placeholder="山田 太郎" className="w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-brand/20" />
+                    <input id="name" name="name" type="text" placeholder="山田 太郎" className="w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-brand/20" />
+                    {errors.name?.map((msg, i) => <p key={i} className="mt-1.5 text-xs text-red-500">{msg}</p>)}
                 </div>
 
                 <div>
                     <label className="mb-1.5 block text-[13px] font-medium text-ink">メールアドレス</label>
-                    <input id="email" name="email" type="email" required placeholder="you@example.com" className="w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-brand/20" />
+                    <input id="email" name="email" type="email" placeholder="you@example.com" className="w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-brand/20" />
+                    {errors.email?.map((msg, i) => <p key={i} className="mt-1.5 text-xs text-red-500">{msg}</p>)}
                 </div>
 
                 <div>
                     <label className="mb-1.5 block text-[13px] font-medium text-ink">誕生日</label>
-                    <input id="birthday" name="birthday" type="date" required className="w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"/>
+                    <input id="birthday" name="birthday" type="date" className="w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"/>
+                    {errors.birthday?.map((msg, i) => <p key={i} className="mt-1.5 text-xs text-red-500">{msg}</p>)}
                 </div>
 
-                <div>
+                <div className='mb-7'>
                     <label className="mb-1.5 block text-[13px] font-medium text-ink">パスワード</label>
-                    <input id="password" name="password" type="password" required placeholder="8文字以上" className="w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-brand/20"/>
+                    <input id="password" name="password" type="password" placeholder="8文字以上" className="w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-brand/20"/>
                     <p className="mt-1.5 text-xs text-slate-500">英数字を組み合わせた強力なパスワードを推奨します。</p>
+                    {errors.password?.map((msg, i) => <p key={i} className="mt-1.5 text-xs text-red-500">{msg}</p>)}
                 </div>
 
                 <div>
                     <label className="mb-1.5 block text-[13px] font-medium text-ink">パスワード（確認）</label>
-                    <input id="password_confirm" name="password_confirm" type="password" required placeholder="もう一度入力" className="w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-brand/20"/>
+                    <input id="password_confirm" name="password_confirm" type="password" placeholder="もう一度入力" className="w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-brand/20"/>
+                    {errors.password_confirmation?.map((msg, i) => <p key={i} className="mt-1.5 text-xs text-red-500">{msg}</p>)}
                 </div>
 
                 <div className="pt-1">
