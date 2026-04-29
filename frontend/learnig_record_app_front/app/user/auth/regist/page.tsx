@@ -6,6 +6,8 @@ import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
+const debugFlg = false;
+
 const apiBaseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
@@ -18,8 +20,6 @@ export default function UserRegistPage() {
         password?: string[];
         password_confirmation?: string[];
     }>({});
-
-
 
     async function userCreateSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault()
@@ -63,8 +63,10 @@ export default function UserRegistPage() {
         }
 
         if (!res.ok) {
-            // console.error("登録失敗ステータス:", res.status);
-            // console.error("Laravelからのメッセージ:", data?.message || "不明なエラー");
+            if(debugFlg){
+                console.error("登録失敗ステータス:", res.status);
+                console.error("Laravelからのメッセージ:", data?.message || "不明なエラー");
+            }
             if(res.status === 422 && data?.errors){
                 setErrors(data.errors);
             }
