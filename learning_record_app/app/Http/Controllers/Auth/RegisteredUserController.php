@@ -30,8 +30,8 @@ class RegisteredUserController extends Controller
 
         try {
             $user = User::registUser($request->validated());
-            // DB::commit();
-            DB::rollBack();
+
+            DB::commit();
 
             return response()->json([
                 'message' => 'ユーザー登録を完了しました！',
