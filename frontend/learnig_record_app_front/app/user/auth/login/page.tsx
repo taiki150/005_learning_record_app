@@ -1,7 +1,83 @@
+'use client'
 import Link from 'next/link'
+
+import { useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
+import { useState } from "react";
+
+
+const apiBaseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
 
 export default function userLoginPage(){
+
+    const [errors, setErrors] = useState<{
+        email?: string[];
+        password?: string[];
+    }>({});
+
+    async function userLoginSubmit(event: React.FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+
+        const form = event.currentTarget;
+        const fd = new FormData(form);
+        const email = fd.get("email") as string;
+
+        const payload = {
+            email,
+        };
+
+        const res = await fetch(`${apiBaseUrl}/api/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            credentials: "include",
+            body: JSON.stringify(payload),
+        });
+
+        const raw = await res.text();
+        let data: {message?: string; errors?:{
+                email?: string[],
+            },
+            user?: { name?: string } } = {};
+
+            // あとで書く
+            // try {
+                
+            // } catch {
+                // return;
+            // }
+
+        if(!res.ok){
+            console.error("ログイン失敗ステータス:", res.status);
+            console.error("Laravelからのメッセージ:", data?.message || "不明なエラー");
+
+            if(res.status === 422 && data?.errors){
+                setErrors(data.errors);
+                console.log(`エラー内容：${data.errors}`);
+                
+            }
+            return;
+        }
+
+        router.push("user/top");
+
+    }
+
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const toastDisplayFlg = useRef(false);
+
+    useEffect(() => {
+        if(searchParams.get("registered") === "1" && !toastDisplayFlg.current){
+            toastDisplayFlg.current = true;
+            toast.success("登録が完了しました！ログインしてください。");
+
+            router.replace("/user/auth/login");
+        }
+    }, [router, searchParams]);
+
     return(
         <div className="min-w-xs w-md rounded-card border-inherit border-line bg-white shadow-[0_4px_20px_rgba(0,0,0,0.07)] m-auto">
 
@@ -9,16 +85,18 @@ export default function userLoginPage(){
                 <h1 className="text-lg font-semibold text-ink">ログイン</h1>
             </div>
 
-            <form className="space-y-5 px-6 py-6 sm:px-8 sm:py-7" action="#" method="post">
+            <form className="space-y-5 px-6 py-6 sm:px-8 sm:py-7" onSubmit={userLoginSubmit} method="post">
 
                 <div>
                     <label className="mb-1.5 block text-[13px] font-medium text-ink">メールアドレス</label>
-                    <input id="email" name="email" type="email" required placeholder="you@example.com" className="w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-brand/20" />
+                    <input id="email" name="email" type="email" placeholder="you@example.com" className="w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-brand/20" />
+                    {errors.email?.map((msg, i) => <p key={i} className="mt-1.5 text-xs text-red-500">{msg}</p>)}
                 </div>
 
                 <div>
                     <label className="mb-1.5 block text-[13px] font-medium text-ink">パスワード</label>
-                    <input id="password_confirm" name="password_confirm" type="password" required placeholder="パスワードを入力" className="w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-brand/20"/>
+                    <input id="password_confirm" name="password_confirm" type="password" placeholder="パスワードを入力" className="w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-brand/20"/>
+                    {errors.password?.map((msg, i) => <p key={i} className="mt-1.5 text-xs text-red-500">{msg}</p>)}
                 </div>
 
                 <div className="pt-1">
