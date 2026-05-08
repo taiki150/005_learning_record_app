@@ -6,10 +6,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useState } from "react";
 
-
 const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+    process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
+function readCookie(name: string): string | undefined {
+    const row = document.cookie.split("; ").find((r) => r.startsWith(`${name}=`));
+    if (!row) return undefined;
+    return decodeURIComponent(row.slice(name.length + 1));
+}
 
 export default function userLoginPage(){
 
@@ -17,6 +21,7 @@ export default function userLoginPage(){
         email?: string[];
         password?: string[];
     }>({});
+    
 
     async function userLoginSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -24,44 +29,52 @@ export default function userLoginPage(){
         const form = event.currentTarget;
         const fd = new FormData(form);
         const email = fd.get("email") as string;
+        const password = fd.get("password") as string;
 
         const payload = {
             email,
+            password,
         };
 
-        const res = await fetch(`${apiBaseUrl}/api/login`, {
+        await fetch(`${apiBaseUrl}/sanctum/csrf-cookie`, {
+            method: "GET",
+            credentials: "include",
+        });
+
+        const xsrf = readCookie("XSRF-TOKEN");
+        const res = await fetch(`${apiBaseUrl}/login`, {
             method: "POST",
-            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                ...(xsrf ? { "X-CSRF-TOKEN": xsrf } : {}),
+            },
             credentials: "include",
             body: JSON.stringify(payload),
         });
 
         const raw = await res.text();
-        let data: {message?: string; errors?:{
-                email?: string[],
-            },
-            user?: { name?: string } } = {};
+        let data: {
+            message?: string; 
+            errors?:{email?: string[], password?: string[]},
+            user?: { name?: string } 
+        } = {};
 
-            // あとで書く
-            // try {
-                
-            // } catch {
-                // return;
-            // }
+            try {
+                data = raw ? JSON.parse(raw) : {};
+            } catch {
+                console.error("ログイン失敗: JSON でないレスポンス", res.status, raw.slice(0, 200));
+                return;
+            }
 
         if(!res.ok){
-            console.error("ログイン失敗ステータス:", res.status);
-            console.error("Laravelからのメッセージ:", data?.message || "不明なエラー");
-
             if(res.status === 422 && data?.errors){
                 setErrors(data.errors);
-                console.log(`エラー内容：${data.errors}`);
-                
             }
             return;
         }
 
-        router.push("user/top");
+        router.push("/user/contents/dashboard");
 
     }
 
@@ -95,7 +108,7 @@ export default function userLoginPage(){
 
                 <div>
                     <label className="mb-1.5 block text-[13px] font-medium text-ink">パスワード</label>
-                    <input id="password_confirm" name="password_confirm" type="password" placeholder="パスワードを入力" className="w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-brand/20"/>
+                    <input id="password" name="password" type="password" placeholder="パスワードを入力" className="w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-brand/20"/>
                     {errors.password?.map((msg, i) => <p key={i} className="mt-1.5 text-xs text-red-500">{msg}</p>)}
                 </div>
 

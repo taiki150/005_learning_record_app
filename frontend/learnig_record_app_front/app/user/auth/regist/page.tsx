@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 const debugFlg = false;
 
 const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+    process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 export default function UserRegistPage() {
     const router = useRouter();
