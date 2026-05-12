@@ -30,6 +30,7 @@ export default function userLoginPage(){
         const fd = new FormData(form);
         const email = fd.get("email") as string;
         const password = fd.get("password") as string;
+        const token = localStorage.getItem('authToken');
 
         const payload = {
             email,
@@ -48,6 +49,7 @@ export default function userLoginPage(){
                 "Content-Type": "application/json",
                 Accept: "application/json",
                 ...(xsrf ? { "X-CSRF-TOKEN": xsrf } : {}),
+                'Authorization': `Bearer ${token}`,
             },
             credentials: "include",
             body: JSON.stringify(payload),
@@ -72,6 +74,11 @@ export default function userLoginPage(){
                 setErrors(data.errors);
             }
             return;
+        }
+
+        const token = data.token;
+        if(token) {
+            localStorage.setItem('authToken', token);  // localStorage に保存
         }
 
         router.push("/user/contents/dashboard");

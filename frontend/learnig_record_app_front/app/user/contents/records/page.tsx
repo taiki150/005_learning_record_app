@@ -1,12 +1,30 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useState, useEffect } from "react";
 
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+
+type Category = {
+    id: number;
+    name: string;
+};
 
 export default function RecordsPage() {
 
-
     const [hours, setHours] = useState(0);
     const [minutes, setMinutes] = useState(0);
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [isPopupOpen, setIsPopupOpen] = useState(false);
+    const [selectedCategories, setSelectedCategories] = useState<number[]>([]); 
+
+    // カテゴリー一覧の取得
+    useEffect(() => {
+        fetch(`${apiBaseUrl}/categories`,{
+            method: 'GET',
+        })
+        .then(res => res.json())
+        .then(data => {console.log('API から取得したカテゴリ:', data);setCategories(data)})
+        .catch(error => console.error('カテゴリ取得エラー:', error));
+    }, []);
 
     function addHourse(delta: number) {
         if(delta === 0){
@@ -35,13 +53,12 @@ export default function RecordsPage() {
         });
     }
 
-
     return (
         <section className="">
             <div className="mx-auto max-w-3xl">
                 <div className="mb-6">
                     <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-                        1日の学習時間を記録
+                        学習時間記録
                     </h1>
                     <p className="mt-1 text-sm text-slate-600">
                         日付・学習内容・学習時間を入力して保存します。
@@ -66,11 +83,7 @@ export default function RecordsPage() {
                                             </span>
                                             <div className="relative inline-flex items-center">
                                                 <label className="relative inline-flex cursor-pointer items-center">
-                                                    <input
-                                                        id="switch-today-auto"
-                                                        type="checkbox"
-                                                        className="peer sr-only"
-                                                    />
+                                                    <input id="switch-today-auto" type="checkbox" className="peer sr-only"/>
                                                     <span className="h-6 w-11 rounded-full bg-indigo-600 transition peer-checked:bg-slate-200" />
                                                     <span className="absolute left-0.5 top-0.5 block h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5" />
                                                 </label>
@@ -84,55 +97,16 @@ export default function RecordsPage() {
                                 <div className="h-[0px] sm:h-[20px]"></div>
                                 
                                 <div className="flex-1">
-                                    <input
-                                        id="learning-date"
-                                        type="date"
-                                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
-                                    />
-                                    <p className="mt-1 hidden text-xs text-slate-500 peer-checked:block">
-                                        ONのときは当日の記録を自動で作成します。
-                                    </p>
+                                    <input id="learning-date" type="date" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"/>
+                                    <p className="mt-1 hidden text-xs text-slate-500 peer-checked:block">ONのときは当日の記録を自動で作成します。</p>
                                 </div>
-                            </div>
-                        </div>
-
-                        <div className="">
-                            <div className="space-y-2">
-                                <label
-                                    className="block text-sm font-medium text-slate-800"
-                                    htmlFor="learning-title"
-                                >
-                                    学習内容
-                                </label>
-                                <input
-                                    id="learning-title"
-                                    type="text"
-                                    placeholder="例: Next.js / 数学 / 英単語"
-                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
-                                />
-                            </div>
-                            <div className="text-center mt-3 w-[100px] m-auto">
-                                <a className="flex justify-center text-[12px] font-medium text-indigo-500 cursor-pointer">
-                                    カテゴリー一覧
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" 
-                                        className="bi bi-chevron-compact-up" viewBox="0 0 16 16">
-                                        
-                                        <path fill-rule="evenodd"
-                                            d="M7.776 5.553a.5.5 0 0 1 .448 0l6 3a.5.5 0 1 1-.448.894L8 6.56 2.224 9.447a.5.5 0 1 1-.448-.894z"/>
-                                    </svg>
-                                </a>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div className="space-y-2 sm:col-span-1">
                                 <div className="space-y-3">
-                                    <label
-                                        className="block text-sm font-medium text-slate-800"
-                                        htmlFor="hours"
-                                    >
-                                        学習時間（時間）
-                                    </label>
+                                    <label className="block text-sm font-medium text-slate-800" htmlFor="hours">学習時間（時間）</label>
                                     <input
                                         value={String(hours)}
                                         onChange={(e) => {
@@ -141,30 +115,20 @@ export default function RecordsPage() {
                                             const n = parseInt(v, 10);
                                             setHours(Number.isFinite(n) && n >= 0 ? n : 0);
                                         }}
-                                        id="hours" type="number" inputMode="numeric"
-                                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                                        id="hours" type="number" inputMode="numeric" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
                                     />
 
                                     <div className="grid grid-cols-4 gap-2">
-                                        <button type="button" onClick={() => addHourse(0)}
-                                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100">0</button>
-                                        <button type="button" onClick={() => addHourse(1)}
-                                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100">1</button>
-                                        <button type="button" onClick={() => addHourse(2)}
-                                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100">2</button>
-                                        <button type="button" onClick={() => addHourse(4)}
-                                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100">4</button>
+                                        <button type="button" onClick={() => addHourse(0)} className="rounded-xl cursor-pointer border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100">0</button>
+                                        <button type="button" onClick={() => addHourse(1)} className="rounded-xl cursor-pointer border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100">1</button>
+                                        <button type="button" onClick={() => addHourse(2)} className="rounded-xl cursor-pointer border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100">2</button>
+                                        <button type="button" onClick={() => addHourse(4)} className="rounded-xl cursor-pointer border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100">4</button>
                                     </div>
                                 </div>
                             </div>
 
                             <div className="space-y-3">
-                                <label
-                                    className="block text-sm font-medium text-slate-800"
-                                    htmlFor="minutes"
-                                >
-                                    学習時間（分）
-                                </label>
+                                <label className="block text-sm font-medium text-slate-800" htmlFor="minutes">学習時間（分）</label>
                                 <input
                                     value={String(minutes)}
                                     onChange={(e) => {
@@ -175,50 +139,69 @@ export default function RecordsPage() {
                                         const nextMinutes = n % 60;
                                         setMinutes(nextMinutes);
                                     }}
-                                    id="minutes" type="number" inputMode="numeric" min={0} step={5}
-                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                                    id="minutes" type="number" inputMode="numeric" min={0} step={5} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
                                 />
                                 <div className="grid grid-cols-4 gap-2">
-                                    <button type="button" onClick={() => addMinutes(0)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100">0</button>
-                                    <button type="button" onClick={() => addMinutes(15)}
-                                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100">15</button>
-                                    <button type="button" onClick={() => addMinutes(30)}
-                                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100">30</button>
-                                    <button type="button" onClick={() => addMinutes(45)}
-                                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100">45</button>
+                                    <button type="button" onClick={() => addMinutes(0)} className="rounded-xl cursor-pointer border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100">0</button>
+                                    <button type="button" onClick={() => addMinutes(15)} className="rounded-xl cursor-pointer border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100">15</button>
+                                    <button type="button" onClick={() => addMinutes(30)} className="rounded-xl cursor-pointer border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100">30</button>
+                                    <button type="button" onClick={() => addMinutes(45)} className="rounded-xl cursor-pointer border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100">45</button>
                                 </div>
                             </div>
                         </div>
 
+                        <div className="mb-0">
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-slate-800" htmlFor="learning-title">カテゴリー</label>
+                                <input id="learning-title" type="text" placeholder="例: Next.js / 数学 / 英単語" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"/>
+                            </div>
+                            <div className="text-center mt-3">
+                                <button 
+                                    type="button"
+                                    onClick={() => setIsPopupOpen(!isPopupOpen)}
+                                    className="group inline-block text-[12px] font-medium text-indigo-500 cursor-pointer transition-[0.5s] hover:text-indigo-300"
+                                >
+                                    <div className="flex ">
+                                        <span>全カテゴリ</span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="ml-1 bi bi-grid-fill transition-transform duration-300 group-hover:rotate-90" viewBox="0 0 16 16">
+                                            <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5z"/>
+                                        </svg>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+
+                        {isPopupOpen && (
+                            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                                {/* ポップアップ本体 */}
+                                <div className="bg-white rounded-lg p-6 w-96 max-h-96 overflow-y-auto">
+                                    <h2 className="text-lg font-bold mb-4">選択中のカテゴリー</h2>
+                                    
+                                    {/* カテゴリリスト */}
+                                    <div>
+
+                                    </div>
+                                    
+                                    <button 
+                                        onClick={() => setIsPopupOpen(false)}
+                                        className="mt-4 bg-indigo-500 text-white px-4 py-2 rounded cursor-pointer transition-[0.5s] hover:bg-indigo-400"
+                                    >
+                                        閉じる
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+
                         <div className="space-y-2">
-                            <label
-                                className="block text-sm font-medium text-slate-800"
-                                htmlFor="notes"
-                            >
-                                メモ（任意）
-                            </label>
-                            <textarea
-                                id="notes"
-                                rows={5}
-                                placeholder="例: 今日できたこと / 次にやること / 詰まった点"
-                                className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
-                            />
+                            <label className="block text-sm font-medium text-slate-800" htmlFor="notes">メモ（任意）</label>
+                            <textarea id="notes" rows={5} placeholder="例: 今日できたこと / 次にやること / 詰まった点" className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"/>
                         </div>
 
                         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-                            <button
-                                type="button"
-                                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100"
-                            >
-                                クリア
-                            </button>
+                            <button type="button" className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100">クリア</button>
 
-                            <button
-                                type="submit"
-                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200"
-                            >
-                                保存
-                            </button>
+                            <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200">保存</button>
                         </div>
                     </form>
                 </div>
