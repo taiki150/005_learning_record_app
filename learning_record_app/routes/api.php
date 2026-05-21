@@ -3,10 +3,24 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Session\Middleware\StartSession;
 
-/* 画面遷移 */
-Route::post('/register', [App\Http\Controllers\Auth\RegisteredUserController::class, 'store']);
-Route::post('/login', [App\Http\Controllers\Auth\AuthenticatedSessionController::class, 'store']);
+// 認証なしで使用可能なエンドポイント
+Route::middleware([StartSession::class])->group(function () {
+    // ログインAPI（認証なしで使用可能）
+    Route::post('/login', [App\Http\Controllers\Auth\AuthenticatedSessionController::class, 'store']);
 
-/* データ取得 */
-Route::get('/categories', [App\Http\Controllers\CategoryController::class, 'index']);
+    // 登録処理API（認証なしで使用可能）
+    Route::post('/register', [App\Http\Controllers\Auth\RegisteredUserController::class, 'store']);
+});
+
+// 認証が必要なエンドポイント
+Route::middleware([StartSession::class, 'auth:sanctum'])->group(function () {
+    // セッション確認API
+    Route::get('/user', [App\Http\Controllers\Auth\AuthenticatedSessionController::class, 'sessionCheck']);
+
+    // カテゴリー取得API
+    Route::get('/categories', [App\Http\Controllers\CategoryController::class, 'index']);
+
+    Route::post('/logout', [App\Http\Controllers\Auth\AuthenticatedSessionController::class, 'destroy']);
+});

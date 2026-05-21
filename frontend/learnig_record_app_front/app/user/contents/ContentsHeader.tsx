@@ -3,9 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useRouter } from 'next/navigation';
+import { apiWrapper } from '@/utils/api';
 
 const linkBase =
     "inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
+
 
 function navItemClass(active: boolean) {
     return active
@@ -22,6 +25,24 @@ function isPathActive(pathname: string, href: string) {
 
 export function ContentsHeader() {
     const pathname = usePathname();
+    const router = useRouter();
+
+    const handleLogout = async () => {
+        const isConfirmed = window.confirm('ログアウトしますか？');
+        if (!isConfirmed) { return; }
+
+        try {
+            const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+            const response = await apiWrapper(`${apiBaseUrl}/logout`, {
+                method: "POST",
+            });
+            if (response.ok) {
+                router.push('/user/auth/login');
+            }
+        } catch (error) {
+            console.error('ログアウトエラー:', error);
+        }
+    }
 
     return (
         <header className="mb-8">
@@ -85,9 +106,9 @@ export function ContentsHeader() {
                             viewBox="0 0 24 24" 
                             fill="none" 
                             stroke="currentColor" 
-                            stroke-width="2.5" 
-                            stroke-linecap="round" 
-                            stroke-linejoin="round" 
+                            strokeWidth="2.5" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
                             aria-hidden="true"
                         >
                             <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
@@ -102,6 +123,7 @@ export function ContentsHeader() {
 
                     <button
                         type="button"
+                        onClick={handleLogout} 
                         className={`${linkBase} text-rose-600 hover:bg-rose-50 hover:text-rose-700 cursor-pointer`}
                     >
                         Logout

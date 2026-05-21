@@ -1,5 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
+import { apiWrapper } from '@/utils/api';
+
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
@@ -18,11 +20,14 @@ export default function RecordsPage() {
 
     // カテゴリー一覧の取得
     useEffect(() => {
-        fetch(`${apiBaseUrl}/categories`,{
+
+        apiWrapper(`${apiBaseUrl}/categories`, {
             method: 'GET',
         })
         .then(res => res.json())
-        .then(data => {console.log('API から取得したカテゴリ:', data);setCategories(data)})
+        .then(categoriesData => {
+            setCategories(categoriesData);
+        })
         .catch(error => console.error('カテゴリ取得エラー:', error));
     }, []);
 
@@ -73,7 +78,6 @@ export default function RecordsPage() {
                                 <div className="space-y-3">
                                     <label
                                         className="block text-sm font-medium text-slate-800"
-                                        htmlFor="hours"
                                     >
                                         日付
                                     </label>
@@ -176,15 +180,56 @@ export default function RecordsPage() {
                                 {/* ポップアップ本体 */}
                                 <div className="bg-white rounded-lg p-6 w-96 max-h-96 overflow-y-auto">
                                     <h2 className="text-lg font-bold mb-4">選択中のカテゴリー</h2>
-                                    
-                                    {/* カテゴリリスト */}
+                                    <div className="flex">
+                                        {
+                                            categories.map((category) => (
+                                                <div key={category.id} className="flex items-center gap-2 p-2">
+                                                    <div onClick={() => {
+                                                            if (selectedCategories.includes(category.id)) {
+                                                                setSelectedCategories(
+                                                                    selectedCategories.filter((id) => id !== category.id)
+                                                                );
+                                                            } else {
+                                                                setSelectedCategories([...selectedCategories, category.id]);
+                                                            }
+                                                        }} className={`
+                                                            flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 border-1
+                                                            ${
+                                                                selectedCategories.includes(category.id)
+                                                                    ? 'bg-indigo-100 border-indigo-500'
+                                                                    : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                                                            }
+                                                        `}>
+                                                        <div 
+                                                            className={`
+                                                                w-4 h-4 rounded border-1 flex items-center justify-center
+                                                                transition-all duration-200
+                                                                ${
+                                                                    selectedCategories.includes(category.id)
+                                                                        ? 'bg-indigo-500 border-indigo-500'
+                                                                        : 'bg-white border-gray-300'
+                                                                }
+                                                            `}>
+                                                            {selectedCategories.includes(category.id) && (
+                                                                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20" >
+                                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                                </svg>
+                                                            )}
+                                                        </div>
+                                                        <span className="text-[14px]">{category.name}</span>
+                                                    </div>
+                                                </div>
+
+                                            ))
+                                        }
+                                        </div>
                                     <div>
 
                                     </div>
                                     
                                     <button 
                                         onClick={() => setIsPopupOpen(false)}
-                                        className="mt-4 bg-indigo-500 text-white px-4 py-2 rounded cursor-pointer transition-[0.5s] hover:bg-indigo-400"
+                                        className="mt-4 bg-indigo-500 text-white px-3 py-2 rounded cursor-pointer transition-[0.5s] hover:bg-indigo-400"
                                     >
                                         閉じる
                                     </button>

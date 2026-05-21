@@ -26,15 +26,16 @@ class AuthenticatedSessionController extends Controller
     public function store(LoginRequest $request): JsonResponse
     {
         $request->authenticate();
-
+        
         $request->session()->regenerate();
-
-        // return redirect()->intended(route('dashboard', absolute: false));
+        
+        Auth::login($request->user());
 
         return response()->json([
             'message' => 'ログインに成功しました',
             'user' => [
-                'email' => Auth::user(),
+                'email' => Auth::user()->email,
+                'id' => Auth::user()->id,
             ],
         ], 200);
     }
@@ -50,6 +51,28 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return response()->json([
+            'message' => 'ログアウトしました',
+        ], 200);
+    }
+
+    // session検証
+    public function sessionCheck(Request $request):JsonResponse {
+        $user = Auth::user();
+
+        if(!$user){
+            return response()->json([
+                'message' => 'Unauthenticated',
+            ], 401);
+        }
+
+        return response()->json([
+            'message' => 'Authenticated',
+            'user' => [
+                'email' => $user->email,
+                'name' => $user->name,
+                'birthday' => $user->birthday,
+            ],
+        ], 200);
     }
 }

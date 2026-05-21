@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import Image from "next/image";
 
 import { useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -30,26 +31,28 @@ export default function userLoginPage(){
         const fd = new FormData(form);
         const email = fd.get("email") as string;
         const password = fd.get("password") as string;
-        const token = localStorage.getItem('authToken');
 
         const payload = {
             email,
             password,
         };
 
-        await fetch(`${apiBaseUrl}/sanctum/csrf-cookie`, {
+        console.log(`URL:${apiBaseUrl}`);
+
+        // CSRF トークンを取得
+        await fetch(`http://localhost:8080/sanctum/csrf-cookie`, {
             method: "GET",
             credentials: "include",
         });
 
         const xsrf = readCookie("XSRF-TOKEN");
+        console.log('XSRF Token:', xsrf);
         const res = await fetch(`${apiBaseUrl}/login`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 Accept: "application/json",
                 ...(xsrf ? { "X-CSRF-TOKEN": xsrf } : {}),
-                'Authorization': `Bearer ${token}`,
             },
             credentials: "include",
             body: JSON.stringify(payload),
@@ -57,9 +60,9 @@ export default function userLoginPage(){
 
         const raw = await res.text();
         let data: {
-            message?: string; 
+            message?: string;
             errors?:{email?: string[], password?: string[]},
-            user?: { name?: string } 
+            user?: { email?: string; id?: number }
         } = {};
 
             try {
@@ -74,11 +77,6 @@ export default function userLoginPage(){
                 setErrors(data.errors);
             }
             return;
-        }
-
-        const token = data.token;
-        if(token) {
-            localStorage.setItem('authToken', token);  // localStorage に保存
         }
 
         router.push("/user/contents/dashboard");
@@ -102,7 +100,20 @@ export default function userLoginPage(){
         <div className="min-w-xs w-md rounded-card border-inherit border-line bg-white shadow-[0_4px_20px_rgba(0,0,0,0.07)] m-auto">
 
             <div className="border-b border-slate-100 px-6 py-5 sm:px-8">
-                <h1 className="text-lg font-semibold text-ink">ログイン</h1>
+                <h1 className="text-lg font-semibold text-ink flex justify-center items-center mb-3">
+                    <div className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 ring-1 ring-slate-200/80 shadow-sm">
+                    <Image
+                        src="/contents/app_logo.png"
+                        alt="アプリロゴ"
+                        width={44}
+                        height={44}
+                        className="object-contain p-1.5"
+                        priority
+                    />
+                </div>
+                    <span className='inline-block ml-5'>ユーザー登録</span>
+                    </h1>
+                <p className="mt-1 text-[13px] text-slate-500">認証に必要な項目を入力してログインを進めてください</p>
             </div>
 
             <form className="space-y-5 px-6 py-6 sm:px-8 sm:py-7" onSubmit={userLoginSubmit} method="post">
