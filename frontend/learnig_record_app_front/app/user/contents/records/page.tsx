@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { apiWrapper } from '@/utils/api';
+import { log } from "console";
 
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
@@ -11,15 +12,83 @@ type Category = {
 };
 
 export default function RecordsPage() {
-
+    
     const [hours, setHours] = useState(0);
     const [minutes, setMinutes] = useState(0);
     const [categories, setCategories] = useState<Category[]>([]);
     const [isPopupOpen, setIsPopupOpen] = useState(false);
-    const [selectedCategories, setSelectedCategories] = useState<number[]>([]); 
+    const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+    const [ratio, setRatio] = useState<number[]>([]);
+
+    const [isChecked, setIsChecked] = useState(false);
+
+    const [validationErrorsMessage, setErrors] = useState<{
+        date?: string[];
+        hours?: string[];
+        minute?: string[];
+        category_id?: string[];
+        memo?: string[];
+    }>({});
+    const [dateValue, setDateValue] = useState("");
+
+
+    async function recordeCreateSubmit(event: React.FormEvent<HTMLFormElement>) {
+        event.preventDefault()
+        
+        const form = event.currentTarget
+        const fd = new FormData(form)
+
+        const date = fd.get('date') as string;
+        const hours = fd.get('hours') as string;
+        const minute = fd.get('minute') as string;
+        const category_id = fd.get('category_ids') as string;
+        const memo = fd.get('memo') as string;
+
+        const payload = {
+            date,
+            hours,
+            minute,
+            category_id,
+            memo
+        }
+
+        const res = await apiWrapper(`${apiBaseUrl}/record`, {
+            method: "POST",
+            headers:{ "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        const raw = await res.text();
+        let data: {message?: string;
+            errors?: 
+            {
+                date?: string[],
+                hours?: string[],
+                minute?: string[],
+                category_id?: string[],
+                memo?: string[],
+            }
+        } = {};
+
+        try {
+            data = raw ? JSON.parse(raw) : {};
+        } catch (error) {
+            console.error("登録失敗: JSON でないレスポンス", res.status, raw.slice(0, 200));
+            return;
+        }
+
+        if(!res.ok){
+            if(res.status === 422 && data?.errors){
+                setErrors(data.errors);
+                
+            }
+            return
+        }
+    }
 
     // カテゴリー一覧の取得
     useEffect(() => {
+
 
         apiWrapper(`${apiBaseUrl}/categories`, {
             method: 'GET',
@@ -38,6 +107,33 @@ export default function RecordsPage() {
         }
         setHours((h) => Math.max(0, h + delta));
     }
+
+    function setAutoDateIfChecked(checked: boolean) {
+        if(!checked){
+            let today = new Date().toLocaleDateString('ja-JP', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+            });
+            today = today.split('/').join('-');
+
+            setDateValue(today);
+        }else{
+            setDateValue("");
+        }
+    }
+
+    // handleChange は event から checked を取得して、上の関数に渡す
+    function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
+        const newChecked = event.target.checked;
+        setIsChecked(newChecked);
+        setAutoDateIfChecked(newChecked);  // ← 共通ロジックを呼び出す
+    }
+
+    useEffect(() => {
+        setIsChecked(false);
+        setAutoDateIfChecked(false);
+    }, []);
 
     function addMinutes(delta: number) {
         if(delta === 0){
@@ -58,6 +154,10 @@ export default function RecordsPage() {
         });
     }
 
+    function handleRemoveCategory(categoryId: number) {
+        setSelectedCategories(prev => prev.filter(id => id !== categoryId));
+    }
+
     return (
         <section className="">
             <div className="mx-auto max-w-3xl">
@@ -71,28 +171,32 @@ export default function RecordsPage() {
                 </div>
 
                 <div className="rounded-2xl border border-slate-200/90 bg-white/95 p-5 shadow-[0_8px_32px_rgba(15,23,42,0.06)] backdrop-blur-md sm:p-7">
-                    <form className="space-y-6">
+                    <form className="space-y-6" onSubmit={recordeCreateSubmit}>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
                             <div className="space-y-2 sm:col-span-1">
                                 <div className="space-y-3">
-                                    <label
-                                        className="block text-sm font-medium text-slate-800"
-                                    >
-                                        日付
-                                    </label>
+                                    <div className="flex items-center">
+                                        <label className="block mr-3 text-sm font-medium text-slate-800">日付</label>
+                                        {validationErrorsMessage.date?.map((msg, i) => <p key={i} className="text-xs text-red-500">{msg}</p>)}
+                                    </div>
                                     <div className="flex items-center gap-3 rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2">
-                                            <span className="text-sm font-medium text-slate-800">
-                                                本日の入力
-                                            </span>
-                                            <div className="relative inline-flex items-center">
-                                                <label className="relative inline-flex cursor-pointer items-center">
-                                                    <input id="switch-today-auto" type="checkbox" className="peer sr-only"/>
-                                                    <span className="h-6 w-11 rounded-full bg-indigo-600 transition peer-checked:bg-slate-200" />
-                                                    <span className="absolute left-0.5 top-0.5 block h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5" />
-                                                </label>
-                                            </div>
+                                        <span className="text-sm font-medium text-slate-800">
+                                            本日の記録
+                                        </span>
+                                        <div className="relative inline-flex items-center">
+                                            <label className="relative inline-flex cursor-pointer items-center">
+                                                <input 
+                                                    id="switch-today-auto"
+                                                    type="checkbox"
+                                                    checked={isChecked}
+                                                    onChange={handleChange}
+                                                    className="peer sr-only"/>
+                                                <span className="h-6 w-11 rounded-full bg-indigo-600 transition peer-checked:bg-slate-200" />
+                                                <span className="absolute left-0.5 top-0.5 block h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5" />
+                                            </label>
                                         </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -101,7 +205,9 @@ export default function RecordsPage() {
                                 <div className="h-[0px] sm:h-[20px]"></div>
                                 
                                 <div className="flex-1">
-                                    <input id="learning-date" type="date" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"/>
+                                    <input id="learning-date" name="date" type="date" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100 read-only:bg-slate-100 read-only:text-slate-500 read-only:cursor-not-allowed" readOnly={!isChecked}
+                                    value={dateValue}
+                                    />
                                     <p className="mt-1 hidden text-xs text-slate-500 peer-checked:block">ONのときは当日の記録を自動で作成します。</p>
                                 </div>
                             </div>
@@ -110,7 +216,12 @@ export default function RecordsPage() {
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div className="space-y-2 sm:col-span-1">
                                 <div className="space-y-3">
-                                    <label className="block text-sm font-medium text-slate-800" htmlFor="hours">学習時間（時間）</label>
+                                    <div className="flex items-center">
+                                        <label className="mr-3 block text-sm font-medium text-slate-800" htmlFor="hours">学習時間（時間）</label>
+                                        {validationErrorsMessage.hours?.map((msg, i) => 
+                                        <p className="text-xs text-red-500" key={i}>{msg}</p>
+                                        )}
+                                    </div>
                                     <input
                                         value={String(hours)}
                                         onChange={(e) => {
@@ -119,7 +230,7 @@ export default function RecordsPage() {
                                             const n = parseInt(v, 10);
                                             setHours(Number.isFinite(n) && n >= 0 ? n : 0);
                                         }}
-                                        id="hours" type="number" inputMode="numeric" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                                        id="hours" type="number" inputMode="numeric" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100" name="hours"
                                     />
 
                                     <div className="grid grid-cols-4 gap-2">
@@ -132,7 +243,13 @@ export default function RecordsPage() {
                             </div>
 
                             <div className="space-y-3">
-                                <label className="block text-sm font-medium text-slate-800" htmlFor="minutes">学習時間（分）</label>
+                                <div className="flex items-center">
+                                    <label className="mr-3 block text-sm font-medium text-slate-800" htmlFor="minutes">学習時間（分）</label>
+                                    {validationErrorsMessage.minute?.map((msg, i) => 
+                                        <p className="text-xs text-red-500" key={i}>{msg}</p>
+                                    )}
+                                    
+                                </div>
                                 <input
                                     value={String(minutes)}
                                     onChange={(e) => {
@@ -143,7 +260,7 @@ export default function RecordsPage() {
                                         const nextMinutes = n % 60;
                                         setMinutes(nextMinutes);
                                     }}
-                                    id="minutes" type="number" inputMode="numeric" min={0} step={5} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                                    id="minutes" type="number" inputMode="numeric" min={0} step={5} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100" name="minute"
                                 />
                                 <div className="grid grid-cols-4 gap-2">
                                     <button type="button" onClick={() => addMinutes(0)} className="rounded-xl cursor-pointer border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100">0</button>
@@ -156,8 +273,26 @@ export default function RecordsPage() {
 
                         <div className="mb-0">
                             <div className="space-y-2">
-                                <label className="block text-sm font-medium text-slate-800" htmlFor="learning-title">カテゴリー</label>
-                                <input id="learning-title" type="text" placeholder="例: Next.js / 数学 / 英単語" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"/>
+                                <div className="flex items-center">
+                                    <label className="mr-3 block text-sm font-medium text-slate-800" htmlFor="learning-title">カテゴリー</label>
+                                    {validationErrorsMessage.category_id?.map((msg, i) => 
+                                    <p key={i} className="text-xs text-red-500">{msg}</p>
+                                    )}
+                                </div>
+                                <div className="flex flex-wrap gap-2 p-3 border rounded-xl bg-white rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100 h-[46px]">
+                                    {selectedCategories.map((categoryId) => {
+                                        const category = categories.find(c => c.id === categoryId);
+                                        return (
+                                        <div key={categoryId} className="flex rounded-md items-center gap-2 bg-indigo-200 px-3 py-1 rounded">
+                                            <span>{category?.name}</span>
+                                            <button className="cursor-pointer" onClick={() => handleRemoveCategory(categoryId)}>×</button>
+                                        </div>
+                                        );
+                                    })}
+                                </div>
+                                <input type="hidden" name="category_ids" 
+                                    value={selectedCategories.join(',')} 
+                                    />
                             </div>
                             <div className="text-center mt-3">
                                 <button 
@@ -166,7 +301,7 @@ export default function RecordsPage() {
                                     className="group inline-block text-[12px] font-medium text-indigo-500 cursor-pointer transition-[0.5s] hover:text-indigo-300"
                                 >
                                     <div className="flex ">
-                                        <span>全カテゴリ</span>
+                                        <span>カテゴリー選択</span>
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="ml-1 bi bi-grid-fill transition-transform duration-300 group-hover:rotate-90" viewBox="0 0 16 16">
                                             <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5z"/>
                                         </svg>
@@ -225,6 +360,15 @@ export default function RecordsPage() {
                                         </div>
                                     <div>
 
+                                        <div>
+                                            {selectedCategories.length >= 2 && (
+                                                <button className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-indigo-600 bg-indigo-50/50 hover:bg-indigo-50 rounded-md transition-colors border border-indigo-100/50 cursor-pointer">
+                                                    <span className="text-sm">○</span>
+                                                    比率変更
+                                                </button>
+                                            )}
+                                        </div>
+
                                     </div>
                                     
                                     <button 
@@ -240,7 +384,7 @@ export default function RecordsPage() {
 
                         <div className="space-y-2">
                             <label className="block text-sm font-medium text-slate-800" htmlFor="notes">メモ（任意）</label>
-                            <textarea id="notes" rows={5} placeholder="例: 今日できたこと / 次にやること / 詰まった点" className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"/>
+                            <textarea id="notes" name="memo" rows={5} placeholder="例: 今日できたこと / 次にやること / 詰まった点" className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"/>
                         </div>
 
                         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">

@@ -111,7 +111,7 @@ export default function userLoginPage(){
                         priority
                     />
                 </div>
-                    <span className='inline-block ml-5'>ユーザー登録</span>
+                    <span className='inline-block ml-5'>ログイン</span>
                     </h1>
                 <p className="mt-1 text-[13px] text-slate-500">認証に必要な項目を入力してログインを進めてください</p>
             </div>

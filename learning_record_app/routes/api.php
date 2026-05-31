@@ -12,6 +12,12 @@ Route::middleware([StartSession::class])->group(function () {
 
     // 登録処理API（認証なしで使用可能）
     Route::post('/register', [App\Http\Controllers\Auth\RegisteredUserController::class, 'store']);
+
+    Route::post('/csrf-token', function (Request $request){
+        return response()->json([
+            'csrf-token' => csrf_token(),
+        ]);
+    });
 });
 
 // 認証が必要なエンドポイント
@@ -19,8 +25,15 @@ Route::middleware([StartSession::class, 'auth:sanctum'])->group(function () {
     // セッション確認API
     Route::get('/user', [App\Http\Controllers\Auth\AuthenticatedSessionController::class, 'sessionCheck']);
 
+    // ログアウト
+    Route::post('/logout', [App\Http\Controllers\Auth\AuthenticatedSessionController::class, 'destroy']);
+
     // カテゴリー取得API
     Route::get('/categories', [App\Http\Controllers\CategoryController::class, 'index']);
 
-    Route::post('/logout', [App\Http\Controllers\Auth\AuthenticatedSessionController::class, 'destroy']);
+    // カテゴリー取得API
+    Route::post('/record', [App\Http\Controllers\LearningRecordController::class, 'store']);
+
+    
+
 });
