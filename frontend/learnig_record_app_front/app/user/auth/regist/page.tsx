@@ -41,7 +41,7 @@ export default function UserRegistPage() {
             password_confirmation: passwordConfirm,
         };
 
-        const res = await fetch(`${apiBaseUrl}/api/register`, {
+        const res = await fetch(`${apiBaseUrl}/register`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Accept: "application/json" },
             body: JSON.stringify(payload),

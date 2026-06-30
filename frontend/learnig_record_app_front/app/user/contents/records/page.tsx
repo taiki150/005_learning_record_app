@@ -1,13 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
 import { apiWrapper } from '@/utils/api';
-import { log } from "console";
+import { count, log } from "console";
 
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 type Category = {
-    id: number;
+    id: string;
     name: string;
 };
 
@@ -17,8 +17,9 @@ export default function RecordsPage() {
     const [minutes, setMinutes] = useState(0);
     const [categories, setCategories] = useState<Category[]>([]);
     const [isPopupOpen, setIsPopupOpen] = useState(false);
-    const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [ratio, setRatio] = useState<number[]>([]);
+    const [lockedIndices, setLockedIndices] = useState<number[]>([]);
 
     const [isChecked, setIsChecked] = useState(false);
 
@@ -30,7 +31,6 @@ export default function RecordsPage() {
         memo?: string[];
     }>({});
     const [dateValue, setDateValue] = useState("");
-
 
     async function recordeCreateSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault()
@@ -57,6 +57,7 @@ export default function RecordsPage() {
             headers:{ "Content-Type": "application/json", Accept: "application/json" },
             body: JSON.stringify(payload)
         });
+        
 
         const raw = await res.text();
         let data: {message?: string;
@@ -80,15 +81,16 @@ export default function RecordsPage() {
         if(!res.ok){
             if(res.status === 422 && data?.errors){
                 setErrors(data.errors);
-                
             }
             return
         }
+
+        console.log(data);
+        
     }
 
     // カテゴリー一覧の取得
     useEffect(() => {
-
 
         apiWrapper(`${apiBaseUrl}/categories`, {
             method: 'GET',
@@ -99,6 +101,19 @@ export default function RecordsPage() {
         })
         .catch(error => console.error('カテゴリ取得エラー:', error));
     }, []);
+
+    useEffect(() => {
+        if(selectedCategories.length === 0){
+            setRatio([]);
+            setLockedIndices([]);
+            return;
+        }
+        const count = selectedCategories.length;
+        const newRatio = Array(count).fill(100 / count);
+        newRatio[newRatio.length - 1] = 100 - ((100 / count) * (count - 1));
+        setRatio(newRatio);
+        setLockedIndices([]);
+    }, [selectedCategories]);
 
     function addHourse(delta: number) {
         if(delta === 0){
@@ -154,9 +169,59 @@ export default function RecordsPage() {
         });
     }
 
-    function handleRemoveCategory(categoryId: number) {
+    function handleRemoveCategory(categoryId: string) {
         setSelectedCategories(prev => prev.filter(id => id !== categoryId));
     }
+
+    function handleRatioChange(changedIndex: number, newValue: number){
+        const lockedSum = lockedIndices.reduce((sum, idx) => sum + ratio[idx], 0);
+        const maxAllowed = 100 - lockedSum;
+
+        if (newValue > maxAllowed) {
+            return;
+        }
+
+        const oldValue = ratio[changedIndex];
+        const diff = newValue - oldValue;
+
+        const otherIndices = ratio.map((_, index) => index).filter(index => index !== changedIndex && !lockedIndices.includes(index));
+        
+        if (otherIndices.length === 0) {
+            return;
+        }
+
+        
+
+        const updatedRatio = [...ratio];
+        updatedRatio[changedIndex] = newValue;
+        
+        let remainingDiff = diff;
+        otherIndices.forEach((idx, position) => {
+            const reduction = (position === otherIndices.length - 1) 
+            ? remainingDiff 
+            : diff / otherIndices.length;
+
+              if (updatedRatio[idx] - reduction < 0) {
+                // 0未満になってしまう場合
+                // 現在の値（引ける限界）だけを引いて 0 にする
+                const actualReduction = updatedRatio[idx];
+                updatedRatio[idx] = 0;
+                remainingDiff -= actualReduction; // 削りきれなかった分が次に繰り越される
+            } else {
+                // 通常の引き算
+                updatedRatio[idx] -= reduction;
+                remainingDiff -= reduction;
+            }
+        });
+        if (remainingDiff !== 0) {
+            const firstUnlockedIdx = otherIndices[0];
+        if (updatedRatio[firstUnlockedIdx] - remainingDiff >= 0) {
+                updatedRatio[firstUnlockedIdx] -= remainingDiff;
+            }
+        }
+        setRatio(updatedRatio);
+    }
+    
 
     return (
         <section className="">
@@ -279,12 +344,12 @@ export default function RecordsPage() {
                                     <p key={i} className="text-xs text-red-500">{msg}</p>
                                     )}
                                 </div>
-                                <div className="flex flex-wrap gap-2 p-3 border rounded-xl bg-white rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100 h-[46px]">
+                                <div className="flex flex-wrap gap-2 p-3 border border-slate-200 rounded-xl bg-white min-h-[54px]">
                                     {selectedCategories.map((categoryId) => {
                                         const category = categories.find(c => c.id === categoryId);
                                         return (
-                                        <div key={categoryId} className="flex rounded-md items-center gap-2 bg-indigo-200 px-3 py-1 rounded">
-                                            <span>{category?.name}</span>
+                                        <div key={categoryId} className="flex rounded-md items-center gap-2 bg-indigo-200 px-3 py-[2px] rounded">
+                                            <span className="text-[12px]">{category?.name}</span>
                                             <button className="cursor-pointer" onClick={() => handleRemoveCategory(categoryId)}>×</button>
                                         </div>
                                         );
@@ -313,9 +378,9 @@ export default function RecordsPage() {
                         {isPopupOpen && (
                             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                                 {/* ポップアップ本体 */}
-                                <div className="bg-white rounded-lg p-6 w-96 max-h-96 overflow-y-auto">
+                                <div className="bg-white rounded-lg p-6 w-[75%] h-[75vh] overflow-y-auto">
                                     <h2 className="text-lg font-bold mb-4">選択中のカテゴリー</h2>
-                                    <div className="flex">
+                                    <div className="flex flex-wrap">
                                         {
                                             categories.map((category) => (
                                                 <div key={category.id} className="flex items-center gap-2 p-2">
@@ -360,23 +425,73 @@ export default function RecordsPage() {
                                         </div>
                                     <div>
 
-                                        <div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            {selectedCategories.length === 1 && (
+                                                selectedCategories.map((categoryId, index) => {
+                                                    const category = categories.find(c => c.id === categoryId);
+                                                    return(
+                                                        <div className="col-span-1 sm:col-span-2 rounded-lg bg-slate-50 p-2.5 border border-slate-200" key={index}>
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <label className="text-xs font-medium text-slate-800">{category?.name}</label>
+                                                                <span className="text-sm font-semibold text-indigo-600">100%</span>
+                                                            </div>
+                                                            <input type="range" min="0" max="100" value="100" readOnly name="" id="" className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" />
+                                                        </div>
+                                                    )
+                                                })
+                                            )}
                                             {selectedCategories.length >= 2 && (
-                                                <button className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-indigo-600 bg-indigo-50/50 hover:bg-indigo-50 rounded-md transition-colors border border-indigo-100/50 cursor-pointer">
-                                                    <span className="text-sm">○</span>
-                                                    比率変更
-                                                </button>
+                                                selectedCategories.map((categoryId, changedIndex) => {
+                                                    const category = categories.find(c => c.id === categoryId);
+                                                    return(
+                                                        <div className="rounded-lg bg-slate-50 p-2.5 border border-slate-200" key={changedIndex}>
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <div className="flex items-center gap-2">
+                                                                    <label className="text-xs font-medium text-slate-800">{category?.name}</label>
+                                                                    <div className="flex items-center gap-1">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            id={`lock-${changedIndex}`}
+                                                                            checked={lockedIndices.includes(changedIndex)}
+                                                                            onChange={(e) => {
+                                                                                if (e.target.checked) {
+                                                                                    setLockedIndices([...lockedIndices, changedIndex]);
+                                                                                } else {
+                                                                                    setLockedIndices(lockedIndices.filter(idx => idx !== changedIndex));
+                                                                                }
+                                                                            }}
+                                                                            className="w-3.5 h-3.5 rounded border-slate-300 text-indigo-600 cursor-pointer"
+                                                                        />
+                                                                        <label htmlFor={`lock-${changedIndex}`} className="text-xs text-slate-700 cursor-pointer">固定</label>
+                                                                    </div>
+                                                                </div>
+                                                                <span className="text-sm font-semibold text-indigo-600">{Math.round(ratio[changedIndex])}%</span>
+                                                            </div>
+                                                            <input
+                                                                type="range"
+                                                                name={category?.name}
+                                                                id=""
+                                                                step="1"
+                                                                onChange={(e) => handleRatioChange(changedIndex, parseFloat(e.target.value))}
+                                                                value={ratio[changedIndex] ?? 0}
+                                                                max="100"
+                                                                min="0"
+                                                                disabled={lockedIndices.includes(changedIndex)}
+                                                                className={`w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 ${lockedIndices.includes(changedIndex) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                            />
+                                                        </div>
+                                                    )
+                                                })
                                             )}
                                         </div>
 
+                                        <button
+                                            onClick={() => setIsPopupOpen(false)}
+                                            className="mt-4 bg-indigo-500 text-white px-3 py-2 rounded cursor-pointer transition-[0.5s] hover:bg-indigo-400"
+                                        >
+                                            閉じる
+                                        </button>
                                     </div>
-                                    
-                                    <button 
-                                        onClick={() => setIsPopupOpen(false)}
-                                        className="mt-4 bg-indigo-500 text-white px-3 py-2 rounded cursor-pointer transition-[0.5s] hover:bg-indigo-400"
-                                    >
-                                        閉じる
-                                    </button>
                                 </div>
                             </div>
                         )}
@@ -388,9 +503,9 @@ export default function RecordsPage() {
                         </div>
 
                         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-                            <button type="button" className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100">クリア</button>
+                            <button type="button" className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100 cursor-pointer">クリア</button>
 
-                            <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200">保存</button>
+                            <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200 cursor-pointer">保存</button>
                         </div>
                     </form>
                 </div>

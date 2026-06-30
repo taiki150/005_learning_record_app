@@ -11,29 +11,26 @@ class CategorySeeder extends Seeder
 {
     public function run(): void
     {
-        $user = User::first();
-        $userId = $user ? $user->id : '適当なユーザーUUID';
+        $users = User::all();
 
-        $categories = [
-            [
-                'id'         => (string) Str::uuid(), // ★UUIDを生成
-                'user_id'    => $userId,
-                'name'       => 'PHP',
-                'color_code' => '#4F5D95',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'id'         => (string) Str::uuid(), // ★UUIDを生成
-                'user_id'    => $userId,
-                'name'       => 'JavaScript',
-                'color_code' => '#F7DF1E',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            // ... 他のカテゴリも同様に 'id' => (string) Str::uuid() を追加
+        $categoryNames = [
+            ['name' => 'PHP', 'color_code' => '#4F5D95'],
+            ['name' => 'JavaScript', 'color_code' => '#F7DF1E'],
+            ['name' => 'Typescript', 'color_code' => '#0070f3'],
+            ['name' => 'Laravel', 'color_code' => '#f55247'],
         ];
 
-        DB::table('categories')->insert($categories);
+        foreach ($users as $user) {
+            foreach ($categoryNames as $categoryData) {
+                DB::table('categories')->insert([
+                    'id'         => (string) Str::uuid(),
+                    'user_id'    => $user->id,
+                    'name'       => $categoryData['name'],
+                    'color_code' => $categoryData['color_code'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
     }
 }
