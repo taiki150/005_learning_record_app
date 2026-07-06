@@ -18,8 +18,10 @@ return new class extends Migration
                 ->references('id')
                 ->on('users')
                 ->onDelete('cascade');
-
+                
+            $table->integer('total_duration')->default(0);
             $table->date('study_date');
+            $table->string('memo')->nullable();
             $table->timestamps();
         });
     }

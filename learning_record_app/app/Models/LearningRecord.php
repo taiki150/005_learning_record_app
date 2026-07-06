@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use App\Models\LearningRecordDetail;
+
 
 class LearningRecord extends Model
 {
@@ -20,14 +22,17 @@ class LearningRecord extends Model
         'user_id',
         'total_duration',
         'study_date',
+        'memo',
     ];
 
-    public function registRecord($request, $userId) {
-        DB::table('LearningRecord')->insert([
-            'id' => (string) Str::uuid(),
-            'user_id' => $userId,
+    public function learningRecordDetails() {
+        return $this->hasMany('App\Models\LearningRecordDetail');
+    }
+
+    public function updateRecord($memo) {
+        $this->update([
             'total_duration' => 0,
-            'study_date' => $request->date,
+            'memo' => $memo,
         ]);
     }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Services\RatioCalculatorService;
 use App\Models\Category;
 use App\Models\LearningRecord;
 use App\Models\LearningRecordDetail;
@@ -25,21 +26,23 @@ class LearningRecordController extends Controller
         DB::beginTransaction();
         try {
             $learningRecord = LearningRecord::firstOrCreate(
-                ['study_date' => $request->date],
+                ['study_date' => $request->study_date, 'user_id' => $userId,],
                 [
                     'id' => (string) Str::uuid(),
-                    'user_id' => $userId,
+                    'memo' => $request->memo,
                 ]
             );
 
             if ($learningRecord->wasRecentlyCreated) {
-                $learningRecord->registRecord($request, $userId);
+                $learningRecord->updateRecord($request->memo);
             }
-            
-            $record_detail = new LearningRecordDetail();
-            $record_detail->registRecordDetail($request, $learningRecord->id);
+             
+            $calculator = new RatioCalculatorService();
+            $ratioOb = $calculator->calculateRatios($request);
 
-            DB::commit();
+            $record_detail = new LearningRecordDetail;
+            $record_detail->registRecordDetail($request, $learningRecord->id, $ratioOb);
+            // DB::commit();
 
         } catch (QueryException $e) {
             DB::rollBack();
@@ -59,8 +62,7 @@ class LearningRecordController extends Controller
         
 
         return response()->json([
-            'message' => '登録が完了しました。',
-            'id' => $learningRecord->id
+            'message' => '登録が完了しました',
         ], 201);
     }
 }

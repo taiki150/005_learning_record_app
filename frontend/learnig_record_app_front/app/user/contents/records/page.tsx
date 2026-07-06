@@ -24,7 +24,7 @@ export default function RecordsPage() {
     const [isChecked, setIsChecked] = useState(false);
 
     const [validationErrorsMessage, setErrors] = useState<{
-        date?: string[];
+        study_date?: string[];
         hours?: string[];
         minute?: string[];
         category_id?: string[];
@@ -38,16 +38,22 @@ export default function RecordsPage() {
         const form = event.currentTarget
         const fd = new FormData(form)
 
-        const date = fd.get('date') as string;
+        const study_date = fd.get('study_date') as string;
         const hours = fd.get('hours') as string;
-        const minute = fd.get('minute') as string;
-        const category_id = fd.get('category_ids') as string;
+        const minute = fd.get('minute') as string;    
+        const category_id = (fd.get('category_id') as string).split(',').filter(id => id);
         const memo = fd.get('memo') as string;
 
+        const ratioObject: Record<string, number> = {};
+        selectedCategories.forEach((categoryId, index) => {
+            ratioObject[categoryId] = ratio[index] ?? 0;
+        });
+
         const payload = {
-            date,
+            study_date,
             hours,
             minute,
+            ratio: ratioObject,
             category_id,
             memo
         }
@@ -63,7 +69,7 @@ export default function RecordsPage() {
         let data: {message?: string;
             errors?: 
             {
-                date?: string[],
+                study_date?: string[],
                 hours?: string[],
                 minute?: string[],
                 category_id?: string[],
@@ -84,9 +90,6 @@ export default function RecordsPage() {
             }
             return
         }
-
-        console.log(data);
-        
     }
 
     // カテゴリー一覧の取得
@@ -138,11 +141,10 @@ export default function RecordsPage() {
         }
     }
 
-    // handleChange は event から checked を取得して、上の関数に渡す
     function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
         const newChecked = event.target.checked;
         setIsChecked(newChecked);
-        setAutoDateIfChecked(newChecked);  // ← 共通ロジックを呼び出す
+        setAutoDateIfChecked(newChecked);
     }
 
     useEffect(() => {
@@ -202,13 +204,10 @@ export default function RecordsPage() {
             : diff / otherIndices.length;
 
               if (updatedRatio[idx] - reduction < 0) {
-                // 0未満になってしまう場合
-                // 現在の値（引ける限界）だけを引いて 0 にする
                 const actualReduction = updatedRatio[idx];
                 updatedRatio[idx] = 0;
-                remainingDiff -= actualReduction; // 削りきれなかった分が次に繰り越される
+                remainingDiff -= actualReduction; 
             } else {
-                // 通常の引き算
                 updatedRatio[idx] -= reduction;
                 remainingDiff -= reduction;
             }
@@ -243,7 +242,7 @@ export default function RecordsPage() {
                                 <div className="space-y-3">
                                     <div className="flex items-center">
                                         <label className="block mr-3 text-sm font-medium text-slate-800">日付</label>
-                                        {validationErrorsMessage.date?.map((msg, i) => <p key={i} className="text-xs text-red-500">{msg}</p>)}
+                                        {validationErrorsMessage.study_date?.map((msg, i) => <p key={i} className="text-xs text-red-500">{msg}</p>)}
                                     </div>
                                     <div className="flex items-center gap-3 rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2">
                                         <span className="text-sm font-medium text-slate-800">
@@ -270,10 +269,9 @@ export default function RecordsPage() {
                                 <div className="h-[0px] sm:h-[20px]"></div>
                                 
                                 <div className="flex-1">
-                                    <input id="learning-date" name="date" type="date" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100 read-only:bg-slate-100 read-only:text-slate-500 read-only:cursor-not-allowed" readOnly={!isChecked}
+                                    <input id="learning-date" name="study_date" type="date" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100 read-only:bg-slate-100 read-only:text-slate-500 read-only:cursor-not-allowed" readOnly={!isChecked}
                                     value={dateValue}
                                     />
-                                    <p className="mt-1 hidden text-xs text-slate-500 peer-checked:block">ONのときは当日の記録を自動で作成します。</p>
                                 </div>
                             </div>
                         </div>
@@ -355,7 +353,7 @@ export default function RecordsPage() {
                                         );
                                     })}
                                 </div>
-                                <input type="hidden" name="category_ids" 
+                                <input type="hidden" name="category_id" 
                                     value={selectedCategories.join(',')} 
                                     />
                             </div>
@@ -378,7 +376,7 @@ export default function RecordsPage() {
                         {isPopupOpen && (
                             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                                 {/* ポップアップ本体 */}
-                                <div className="bg-white rounded-lg p-6 w-[75%] h-[75vh] overflow-y-auto">
+                                <div className="bg-white rounded-lg p-6 w-[75%] h-[60vh] overflow-y-auto">
                                     <h2 className="text-lg font-bold mb-4">選択中のカテゴリー</h2>
                                     <div className="flex flex-wrap">
                                         {
@@ -435,7 +433,7 @@ export default function RecordsPage() {
                                                                 <label className="text-xs font-medium text-slate-800">{category?.name}</label>
                                                                 <span className="text-sm font-semibold text-indigo-600">100%</span>
                                                             </div>
-                                                            <input type="range" min="0" max="100" value="100" readOnly name="" id="" className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" />
+                                                            <input type="range" min="0" max="100" value="100" readOnly name="ratio" id="" className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"/>
                                                         </div>
                                                     )
                                                 })
@@ -465,11 +463,11 @@ export default function RecordsPage() {
                                                                         <label htmlFor={`lock-${changedIndex}`} className="text-xs text-slate-700 cursor-pointer">固定</label>
                                                                     </div>
                                                                 </div>
-                                                                <span className="text-sm font-semibold text-indigo-600">{Math.round(ratio[changedIndex])}%</span>
+                                                                <span className="text-sm font-semibold text-indigo-600">{ratio[changedIndex]?.toFixed(1)}%</span>
                                                             </div>
                                                             <input
                                                                 type="range"
-                                                                name={category?.name}
+                                                                name="ratio"
                                                                 id=""
                                                                 step="1"
                                                                 onChange={(e) => handleRatioChange(changedIndex, parseFloat(e.target.value))}

@@ -23,10 +23,11 @@ class LearningRecordRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'date' => ['required', 'date'],
+            'study_date' => ['required', 'date'],
             'hours' => ['required', 'integer', 'min:0', 'max:24'],
             'minute' => ['required', 'integer', 'min:0', 'max:59'],
-            'category_id' => ['required', 'string', 'exists:categories,id'],
+            'category_id' => ['required', 'array'],
+            'category_id.*' => ['required', 'string', 'exists:categories,id'],
             'memo' => ['nullable', 'string', 'max:1000'],
         ];
     }

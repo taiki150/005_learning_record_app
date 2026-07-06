@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
+use App\Models\LearningRecord;
+use Illuminate\Support\Str;
 
 class LearningRecordDetail extends Model
 {
@@ -21,19 +24,22 @@ class LearningRecordDetail extends Model
         'learning_record_id',
         'category_id',
         'ratio',
-        'duration',
-        'memo',
+        'deuration',
     ];
 
-    public function registRecordDetail($request, $learningRecord_id) {
-        DB::table('LearningRecordDetail')->insert([
-            'id' => (string) Str::uuid(),
-            'learning_record_id' => $learningRecord_id,
-            'category_id' => $request->category_id,
-            'ratio' => $request->ratio,
-            'duration' => $request->duration,
-            'memo' => $request->memo,
-        ]);
+    public function LearningRecord() {
+        return $this->belongsTo('App\Models\LearningRecord');
     }
 
+    public function registRecordDetail($request, $learningRecord_id, $ratioOb) {
+        foreach($ratioOb as $category_id => $data) {
+            DB::table('learning_record_details')->insert([
+                'id' => (string) Str::uuid(),
+                'learning_record_id' => $learningRecord_id,
+                'category_id' => $category_id,
+                'ratio' => $data['ratio'],
+                'deuration' => $data['time'],
+            ]);
+        }
+    }
 }

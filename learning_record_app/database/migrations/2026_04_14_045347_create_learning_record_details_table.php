@@ -24,7 +24,6 @@ return new class extends Migration
 
             $table->decimal('ratio', 3, 2);
             $table->decimal('deuration');
-            $table->string('memo');
             $table->timestamps();
         });
     }
