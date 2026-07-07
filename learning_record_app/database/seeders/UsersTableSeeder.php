@@ -14,10 +14,10 @@ class UsersTableSeeder extends Seeder
     {
         $dummyUsers = [
             [
-                'name' => 'ダミー太郎',
+                'name' => '松岡泰生',
                 'email' => 'taiki1544.0711@gmail.com',
-                'password' => 'password',
-                'birthday' => '1995-03-15',
+                'password' => 'Taiki1544',
+                'birthday' => '1999-07-11',
             ],
             [
                 'name' => 'ダミー花子',

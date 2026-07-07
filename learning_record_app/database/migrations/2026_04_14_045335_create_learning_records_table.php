@@ -19,9 +19,10 @@ return new class extends Migration
                 ->on('users')
                 ->onDelete('cascade');
                 
-            $table->integer('total_duration');
+            $table->integer('total_duration')->default(0);
             $table->date('study_date');
-            $table->string('memo');
+            $table->string('memo')->nullable();
+            $table->timestamps();
         });
     }
 
