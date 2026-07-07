@@ -30,19 +30,18 @@ class LearningRecordController extends Controller
                 [
                     'id' => (string) Str::uuid(),
                     'memo' => $request->memo,
+                    'total_duration' => 0,
                 ]
             );
 
-            if ($learningRecord->wasRecentlyCreated) {
-                $learningRecord->updateRecord($request->memo);
-            }
-             
             $calculator = new RatioCalculatorService();
             $ratioOb = $calculator->calculateRatios($request);
 
             $record_detail = new LearningRecordDetail;
             $record_detail->registRecordDetail($request, $learningRecord->id, $ratioOb);
-            // DB::commit();
+
+            $learningRecord->updateRecord($request, $learningRecord->study_date);
+            DB::commit();
 
         } catch (QueryException $e) {
             DB::rollBack();

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use App\Models\LearningRecordDetail;
+use App\Models\LearningRecord;
 
 
 class LearningRecord extends Model
@@ -29,11 +30,9 @@ class LearningRecord extends Model
         return $this->hasMany('App\Models\LearningRecordDetail');
     }
 
-    public function updateRecord($memo) {
-        $this->update([
-            'total_duration' => 0,
-            'memo' => $memo,
-        ]);
+    public function updateRecord($request, $day) {
+        $new_time = ($request->hours * 60) + $request->minute;
+        $this->increment('total_duration', $new_time);
     }
 
 }

@@ -1,14 +1,16 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { apiWrapper } from '@/utils/api';
 import { count, log } from "console";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 type Category = {
     id: string;
-    name: string;
+    name: string; 
 };
 
 export default function RecordsPage() {
@@ -90,7 +92,26 @@ export default function RecordsPage() {
             }
             return
         }
+
+        router.push("/user/contents/records?registered=1");
     }
+    
+        const router = useRouter();
+        const searchParams = useSearchParams();
+        const toastDisplayFlg = useRef(false);
+
+    useEffect(() => {
+        if(searchParams.get("registered") === "1" && !toastDisplayFlg.current){
+            toastDisplayFlg.current = true;
+            toast.success("登録が完了しました！");
+
+            const timer = setTimeout(() => {
+                router.replace("/user/contents/records");
+            }, 1500);
+
+            return () => clearTimeout(timer);
+        }
+    }, [searchParams, router]);
 
     // カテゴリー一覧の取得
     useEffect(() => {
@@ -269,9 +290,10 @@ export default function RecordsPage() {
                                 <div className="h-[0px] sm:h-[20px]"></div>
                                 
                                 <div className="flex-1">
-                                    <input id="learning-date" name="study_date" type="date" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100 read-only:bg-slate-100 read-only:text-slate-500 read-only:cursor-not-allowed" readOnly={!isChecked}
-                                    value={dateValue}
-                                    />
+                                        <input id="learning-date" name="study_date" type="date" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100 read-only:bg-slate-100 read-only:text-slate-500 read-only:cursor-not-allowed" readOnly={!isChecked}
+                                        value={dateValue}
+                                        onChange={(e) => setDateValue(e.target.value)}
+                                        />
                                 </div>
                             </div>
                         </div>

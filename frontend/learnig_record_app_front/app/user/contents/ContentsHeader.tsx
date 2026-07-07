@@ -98,7 +98,7 @@ export function ContentsHeader() {
                             isPathActive(pathname, "/user/contents/setting"),
                         ) + " group"}
                     >
-                        setting
+                        Setting
                         <svg 
                             className="ml-1 transition-transform duration-300 group-hover:rotate-90"
                             width="16" 
