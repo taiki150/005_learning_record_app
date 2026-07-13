@@ -35,5 +35,7 @@ Route::middleware([StartSession::class, 'auth:sanctum'])->group(function () {
     Route::post('/record', [App\Http\Controllers\LearningRecordController::class, 'store']);
 
     
-
+    /* ここからData取得API */
+    Route::post('data/record',
+    [App\Http\Controllers\LearningRecordController::class, 'getData']);
 });

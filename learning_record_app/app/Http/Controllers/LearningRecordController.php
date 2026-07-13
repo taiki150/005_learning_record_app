@@ -25,20 +25,14 @@ class LearningRecordController extends Controller
 
         DB::beginTransaction();
         try {
-            $learningRecord = LearningRecord::firstOrCreate(
-                ['study_date' => $request->study_date, 'user_id' => $userId,],
-                [
-                    'id' => (string) Str::uuid(),
-                    'memo' => $request->memo,
-                    'total_duration' => 0,
-                ]
-            );
+            $record_id = (new LearningRecord())->registRecord($request, $userId);
+            $learningRecord = LearningRecord::where('id', $record_id)->first();
 
             $calculator = new RatioCalculatorService();
             $ratioOb = $calculator->calculateRatios($request);
 
             $record_detail = new LearningRecordDetail;
-            $record_detail->registRecordDetail($request, $learningRecord->id, $ratioOb);
+            $record_detail->registRecordDetail($request, $record_id, $ratioOb);
 
             $learningRecord->updateRecord($request, $learningRecord->study_date);
             DB::commit();
@@ -63,5 +57,22 @@ class LearningRecordController extends Controller
         return response()->json([
             'message' => '登録が完了しました',
         ], 201);
+    }
+
+    public function getData() {
+        $request = request()->getContent();
+        $data = json_decode($request);
+        $user_id = Auth::user()->id;
+        $startDate = $data->start_date;
+        $endDate = $data->end_date;
+
+        $record_readers = LearningRecord::where('user_id', $user_id)
+            ->whereBetween('study_date', [$startDate, $endDate])
+            ->with('learningRecordDetails')
+            ->get();
+
+        return response()->json([
+            'recordData' => $record_readers,
+        ], 200);
     }
 }
