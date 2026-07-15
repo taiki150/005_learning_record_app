@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 
 class LearningRecordController extends Controller
@@ -59,6 +60,7 @@ class LearningRecordController extends Controller
         ], 201);
     }
 
+    // グラフ期間の取得API
     public function getData() {
         $request = request()->getContent();
         $data = json_decode($request);
@@ -73,6 +75,56 @@ class LearningRecordController extends Controller
 
         return response()->json([
             'recordData' => $record_readers,
+        ], 200);
+    }
+
+
+    // 連続日数の取得
+    public function getConsecutiveData() {
+        $request = request()->getContent();
+        $data = json_decode($request);
+        $user_id = Auth::user()->id;
+
+        $baseDate = new Carbon($data, 'Asia/Tokyo');
+        $rangeEnd_Today = $baseDate->format('Y-m-d');
+        $rangeStarte_OneYearAgo = $baseDate->copy()->subDays(365)->format('Y-m-d');
+
+        $records = LearningRecord::where('user_id', $user_id)
+            ->whereBetween('study_date', [$rangeStarte_OneYearAgo, $rangeEnd_Today])
+            ->pluck('study_date')
+            ->toArray();
+
+            $recordMap = array_flip($records);
+            $onsecutiveDays = 0;
+
+            $todayStr = $baseDate->format('Y-m-d');
+            $yesterdayStr = $baseDate->copy()->subDay()->format('Y-m-d');
+
+            if(isset($recordMap[$todayStr])){
+                $baseDate;
+            }elseif(isset($recordMap[$yesterdayStr])){
+                $baseDate->subDay();
+
+            }else{
+                return response()->json([
+                    'onsecutiveDays' => 0,
+                ], 200);
+            }
+            
+            for ($i=0; $i < 365; $i++) { // 365日分をMaxカウントとして設定（当面はこちらで設定）
+
+                $formattedCheckDate = $baseDate->format('Y-m-d');
+    
+                if (isset($recordMap[$formattedCheckDate])) {
+                    $onsecutiveDays++;
+                    $baseDate->subDay();
+                } else {
+                    break; 
+                }
+            }
+
+        return response()->json([
+            $onsecutiveDays,
         ], 200);
     }
 }

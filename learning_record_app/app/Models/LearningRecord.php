@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use App\Models\LearningRecordDetail;
-use App\Models\LearningRecord;
 use Illuminate\Support\Str;
 
 

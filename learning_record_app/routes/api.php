@@ -38,4 +38,6 @@ Route::middleware([StartSession::class, 'auth:sanctum'])->group(function () {
     /* ここからData取得API */
     Route::post('data/record',
     [App\Http\Controllers\LearningRecordController::class, 'getData']);
+    Route::post('data/consecutive',
+    [App\Http\Controllers\LearningRecordController::class, 'getConsecutiveData']);
 });

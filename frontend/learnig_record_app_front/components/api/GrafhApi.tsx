@@ -9,6 +9,15 @@ export type grafhPeriod = {
     end_date:string,
 }
 
+export async function ConsecutiveApi(now:string) {
+    const res = await apiWrapper(`${apiBaseUrl}/data/consecutive`, {
+        method: 'POST',
+        body: JSON.stringify(now)
+    })
+    
+    return await res.json();
+}
+
 export async function GrafhApi(date:grafhPeriod) {
     const res = await apiWrapper(`${apiBaseUrl}/data/record`, {
         method: 'POST',
