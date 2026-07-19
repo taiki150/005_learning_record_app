@@ -107,7 +107,7 @@ class LearningRecordController extends Controller
 
             }else{
                 return response()->json([
-                    'onsecutiveDays' => 0,
+                    'onsecutiveDays' => $onsecutiveDays,
                 ], 200);
             }
             
@@ -124,7 +124,7 @@ class LearningRecordController extends Controller
             }
 
         return response()->json([
-            $onsecutiveDays,
+            'onsecutiveDays' => $onsecutiveDays,
         ], 200);
     }
 }

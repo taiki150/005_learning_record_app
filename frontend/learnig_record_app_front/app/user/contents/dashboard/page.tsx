@@ -4,12 +4,26 @@ import { GrafhApi, ConsecutiveApi } from "../../../../components/api/GrafhApi";
 import { useEffect, useState, useRef } from "react";
 import dayjs from 'dayjs';
 import { FireIcon, ClockIcon, ChartBarIcon } from '@heroicons/react/24/outline';
+import { log } from "console";
 
 type RecordData = {
     recordData: {
-        id: string;
-        total_duration: number;
-        study_date: string;
+        id?: string,
+        learning_record_details?:{
+            category_id?:string,
+            created_at?:Date,
+            deuration?:number,
+            id?:string,
+            learning_record_id?:string,
+            ratio?:number,
+            updated_at?:Date,
+        }
+        memo?:string,
+        study_date?: Date,
+        total_duration: number,
+        updated_at?:Date
+        user_id?:string,
+
     }[],
 };
 
@@ -18,50 +32,83 @@ type CountUpNumberProps = {
     fontSize?: string;
     isFloor?: boolean;
     speed?: "slow" | "medium" | "fast";
-    withComma?:boolean
 };
 
 const speedDuration = {
-    slow: 3,
-    medium: 2,
+    slow: 5,
+    medium: 3,
     fast: 1,
 };
 
-const now = dayjs().format('YYYY-MM-DD');
-const oneWeekAgo = dayjs().subtract(7, 'days').format('YYYY-MM-DD');
-const oneMonthAgo = dayjs().subtract(1, 'month').format('YYYY-MM-DD');
+const now:string = dayjs().format('YYYY-MM-DD');
+const startOfThisWeek: string = dayjs().startOf('week').format('YYYY-MM-DD');
+const endOfThisWeek: string = dayjs().startOf('week').add(6, 'days').format('YYYY-MM-DD');
+
+const startOfThisMonth: string = dayjs().startOf('month').format('YYYY-MM-DD');
+const endOfThisMonth: string = dayjs().endOf('month').format('YYYY-MM-DD');
+
 
 export default function DashboardPage() {
-    const [weekData, setWeekData] = useState<RecordData | null>(null);
-    const [monthData, setMonthData] = useState<RecordData | null>(null);
-    const [onsecutiveDays, setConsecutiveDays] = useState<number>();
+    const [weekData, setWeekData] = useState<RecordData>();
+    const [monthData, setMonthData] = useState<RecordData>();
+    const [onsecutiveDays, setConsecutiveDays] = useState<number>(0);
+    const [viewMode, setViewMode] = useState('week');
+    const [weekViewData, setWeekViewData] = useState<number>(0);
+    const [monthViewData, setMonthViewData] = useState<number>(0);
 
     useEffect(() => {
         Promise.all([
-            GrafhApi({ start_date: oneWeekAgo, end_date: now }),
-            GrafhApi({ start_date: oneMonthAgo, end_date: now }),
+            GrafhApi({ start_date: startOfThisWeek, end_date: endOfThisWeek }),
+            GrafhApi({ start_date: startOfThisMonth, end_date: endOfThisMonth }),
             ConsecutiveApi(now),
             
         ])
         .then(([week, month, onsecutiveDays]) => {
             setWeekData(week);
             setMonthData(month);
-            setConsecutiveDays(onsecutiveDays);
+            setConsecutiveDays(onsecutiveDays.onsecutiveDays);
         })
         .catch((err) => {
             console.log("通信エラーが発生しました:", err);
         });
     }, []);
 
-    console.log(monthData);
-    console.log(onsecutiveDays);
+    console.log(startOfThisWeek, );
+    
+
+    useEffect(() => {
+        let weekTime = 0;
+        let monthTime = 0;
+        weekData?.recordData.map((data) => {
+            console.log(data.total_duration);
+            weekTime = weekTime + data.total_duration;
+        })
+        monthData?.recordData.map((data) => {
+            monthTime = monthTime + data.total_duration;
+        })
+
+        weekTime = (weekTime/60);
+        monthTime = monthTime/60;
+        console.log(weekTime);
+        const a = weekTime.toFixed(1);
+
+        console.log(Math.round(weekTime * 10) / 10);
+        
+        
+        setWeekViewData(Math.round(weekTime * 10) / 10);
+        setMonthViewData(Math.round(monthTime * 10) / 10);
+
+
+
+    }, [weekData, monthData]);
+
+
 
     const CountUpNumber = ({
         number,
-        fontSize = "text-[max(8.533vw,32px)] md:text-[min(4.375vw,56px)]",
+        fontSize = "",
         isFloor = false,
         speed = "medium",
-        withComma = true,
         }: CountUpNumberProps) => {
         const ref = useRef<HTMLSpanElement>(null);
         const isInView = useInView(ref, { once: true }); // 一度だけ実行
@@ -79,18 +126,9 @@ export default function DashboardPage() {
                 // 数値が更新されるたびにテキストを書き換える（再レンダリングを避けるため直接DOM操作）
                 if (ref.current) {
                     const value = isFloor ? Math.round(latest * 10) / 10 : Math.floor(latest);
-                    if (withComma) {
-                        // カンマ付き
-                        const formatter = isFloor
-                        ? Intl.NumberFormat("ja-JP", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
-                        : Intl.NumberFormat("ja-JP");
-                        ref.current.textContent = formatter.format(value);
-                    } else {
-                        // カンマ抜き
-                        ref.current.textContent = value.toString();
-                    }
-                }
-                },
+                    // カンマ抜き
+                    ref.current.textContent = value.toString();
+                }},
             });
             }
         }, [isInView, number, motionValue, isFloor, speed]);
@@ -122,8 +160,10 @@ export default function DashboardPage() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-medium text-slate-600">連続日数</p>
-                                <p className="mt-2 text-3xl font-bold text-slate-900">{onsecutiveDays}</p>
-                                <p className="mt-1 text-xs text-slate-500">今週</p>
+                                <p className="mt-2 text-3xl font-bold text-slate-900">
+                                    <CountUpNumber number={onsecutiveDays} isFloor={false} speed="fast"/>
+                                </p>
+                                <p className="mt-1 text-xs text-slate-500"></p>
                             </div>
                             <FireIcon className="w-12 h-12 text-indigo-500" />
                         </div>
@@ -133,7 +173,10 @@ export default function DashboardPage() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-medium text-slate-600">今週の学習時間</p>
-                                <p className="mt-2 text-3xl font-bold text-slate-900">0.0</p>
+
+                                <p className="mt-2 text-3xl font-bold text-slate-900">
+                                    <CountUpNumber number={weekViewData} isFloor={true} speed="fast"/>
+                                </p>
                                 <p className="mt-1 text-xs text-slate-500">時間</p>
                             </div>
                             <ClockIcon className="w-12 h-12 text-sky-500" />
@@ -144,7 +187,9 @@ export default function DashboardPage() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-medium text-slate-600">今月の学習時間</p>
-                                <p className="mt-2 text-3xl font-bold text-slate-900">0.0</p>
+                                <p className="mt-2 text-3xl font-bold text-slate-900">
+                                    <CountUpNumber number={monthViewData} isFloor={true} speed="slow"/>
+                                </p>
                                 <p className="mt-1 text-xs text-slate-500">時間</p>
                             </div>
                             <ChartBarIcon className="w-12 h-12 text-emerald-500" />
@@ -156,7 +201,7 @@ export default function DashboardPage() {
                     <div className="rounded-2xl border border-slate-200/90 bg-white/95 p-6 shadow-[0_8px_32px_rgba(15,23,42,0.06)] backdrop-blur-md">
                         <h2 className="text-lg font-semibold text-slate-900 mb-4">週間の学習時間</h2>
                         <div className="flex items-end justify-between gap-2 h-48">
-                            {["月", "火", "水", "木", "金", "土", "日"].map((day) => (
+                            {[ "日", "月", "火", "水", "木", "金", "土"].map((day) => (
                                 <div key={day} className="flex flex-col items-center flex-1">
                                     <div className="w-full bg-gradient-to-t from-indigo-500 to-indigo-400 rounded-t-lg" style={{ height: "0%" }}></div>
                                     <p className="text-xs text-slate-600 mt-2">{day}</p>
