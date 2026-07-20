@@ -19,13 +19,18 @@ type RecordData = {
             updated_at?:Date,
         }
         memo?:string,
-        study_date?: Date,
+        study_date: string,
         total_duration: number,
         updated_at?:Date
         user_id?:string,
 
     }[],
 };
+
+type ChartData = {
+    date: string, 
+    duration: number,
+}[];
 
 type CountUpNumberProps = {
     number: number;
@@ -55,6 +60,7 @@ export default function DashboardPage() {
     const [viewMode, setViewMode] = useState('week');
     const [weekViewData, setWeekViewData] = useState<number>(0);
     const [monthViewData, setMonthViewData] = useState<number>(0);
+    const [weekChartData, setWeekChartData] = useState<ChartData>([]);
 
     useEffect(() => {
         Promise.all([
@@ -72,15 +78,12 @@ export default function DashboardPage() {
             console.log("通信エラーが発生しました:", err);
         });
     }, []);
-
-    console.log(startOfThisWeek, );
     
 
     useEffect(() => {
         let weekTime = 0;
         let monthTime = 0;
         weekData?.recordData.map((data) => {
-            console.log(data.total_duration);
             weekTime = weekTime + data.total_duration;
         })
         monthData?.recordData.map((data) => {
@@ -89,20 +92,29 @@ export default function DashboardPage() {
 
         weekTime = (weekTime/60);
         monthTime = monthTime/60;
-        console.log(weekTime);
-        const a = weekTime.toFixed(1);
-
-        console.log(Math.round(weekTime * 10) / 10);
-        
         
         setWeekViewData(Math.round(weekTime * 10) / 10);
         setMonthViewData(Math.round(monthTime * 10) / 10);
 
-
+        console.log(weekData);
+        
 
     }, [weekData, monthData]);
 
 
+    useEffect(() => {
+        
+        const recordDatas = weekData?.recordData;
+        if (!recordDatas) {
+            setWeekChartData([]);
+            return;
+        }
+        const newData: ChartData = recordDatas.map((recordData) => ({
+            date: recordData.study_date,
+            duration: recordData.total_duration,
+        }));
+        setWeekChartData(newData)
+    }, [weekData]);
 
     const CountUpNumber = ({
         number,
