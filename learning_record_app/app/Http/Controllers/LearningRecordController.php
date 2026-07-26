@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Services\RatioCalculatorService;
 use App\Models\Category;
 use App\Models\LearningRecord;
+use App\Models\LearningMemo;
 use App\Models\LearningRecordDetail;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -28,6 +29,10 @@ class LearningRecordController extends Controller
         try {
             $record_id = (new LearningRecord())->registRecord($request, $userId);
             $learningRecord = LearningRecord::where('id', $record_id)->first();
+
+            if(isset($request->memo)){
+                LearningMemo::registRecordMemo($record_id, $request->memo);
+            }
 
             $calculator = new RatioCalculatorService();
             $ratioOb = $calculator->calculateRatios($request);

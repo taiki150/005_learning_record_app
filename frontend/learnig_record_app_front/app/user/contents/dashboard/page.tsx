@@ -1,10 +1,9 @@
 "use client"
-import { animate, useInView, useMotionValue } from "framer-motion";
 import { GrafhApi, ConsecutiveApi } from "../../../../components/api/GrafhApi";
-import { useEffect, useState, useRef } from "react";
+import { ChartSection } from "../../../../components/common/ChartSection";
+import { StatsSection } from "../../../../components/common/StatsSection";
+import { useEffect, useState } from "react";
 import dayjs from 'dayjs';
-import { FireIcon, ClockIcon, ChartBarIcon } from '@heroicons/react/24/outline';
-import { log } from "console";
 
 type RecordData = {
     recordData: {
@@ -32,18 +31,6 @@ type ChartData = {
     duration: number,
 }[];
 
-type CountUpNumberProps = {
-    number: number;
-    fontSize?: string;
-    isFloor?: boolean;
-    speed?: "slow" | "medium" | "fast";
-};
-
-const speedDuration = {
-    slow: 5,
-    medium: 3,
-    fast: 1,
-};
 
 const now:string = dayjs().format('YYYY-MM-DD');
 const startOfThisWeek: string = dayjs().startOf('week').format('YYYY-MM-DD');
@@ -57,11 +44,13 @@ export default function DashboardPage() {
     const [weekData, setWeekData] = useState<RecordData>();
     const [monthData, setMonthData] = useState<RecordData>();
     const [onsecutiveDays, setConsecutiveDays] = useState<number>(0);
-    const [viewMode, setViewMode] = useState('week');
+    const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
     const [weekViewData, setWeekViewData] = useState<number>(0);
     const [monthViewData, setMonthViewData] = useState<number>(0);
     const [weekChartData, setWeekChartData] = useState<ChartData>([]);
+    const [monthChartData, setMonthChartData] = useState<ChartData>([]);
 
+    // 初期状態のデータ取得
     useEffect(() => {
         Promise.all([
             GrafhApi({ start_date: startOfThisWeek, end_date: endOfThisWeek }),
@@ -80,6 +69,7 @@ export default function DashboardPage() {
     }, []);
     
 
+    // 初期状態の取得データ加工
     useEffect(() => {
         let weekTime = 0;
         let monthTime = 0;
@@ -102,125 +92,75 @@ export default function DashboardPage() {
     }, [weekData, monthData]);
 
 
+    // 週間チャート表示するための処理
     useEffect(() => {
-        
+        const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
+
         const recordDatas = weekData?.recordData;
         if (!recordDatas) {
             setWeekChartData([]);
             return;
         }
-        const newData: ChartData = recordDatas.map((recordData) => ({
-            date: recordData.study_date,
-            duration: recordData.total_duration,
-        }));
-        setWeekChartData(newData)
+
+        const newData: ChartData = weekDays.map((day, index) => {
+            const matchedRecord = recordDatas.find((recordData) => {
+                const dateObj = new Date(recordData.study_date);
+                return dateObj.getDay() === index;
+            });
+            const duration = matchedRecord ? matchedRecord.total_duration / 60 : 0;
+
+            return {
+                date: day,
+                duration: duration,
+            };
+        });
+
+        setWeekChartData(newData);
     }, [weekData]);
 
-    const CountUpNumber = ({
-        number,
-        fontSize = "",
-        isFloor = false,
-        speed = "medium",
-        }: CountUpNumberProps) => {
-        const ref = useRef<HTMLSpanElement>(null);
-        const isInView = useInView(ref, { once: true }); // 一度だけ実行
+    // 月間チャート表示するための処理
+    useEffect(() => {
+        const recordDatas = monthData?.recordData;
+        if (!recordDatas || recordDatas.length === 0) {
+            setMonthChartData([]);
+            return;
+        }
 
-        // 動きの管理
-        const motionValue = useMotionValue(speed === "fast" ? 1 : 0);
+        const dataMap = new Map<string, number>();
+        recordDatas.forEach((record) => {
+            const date = record.study_date;
+            const duration = record.total_duration / 60;
+            dataMap.set(date, (dataMap.get(date) ?? 0) + duration);
+        });
 
-        useEffect(() => {
-            if (isInView) {
-            // 画面に入ったらアニメーション開始
-            animate(motionValue, number, {
-                duration: speedDuration[speed], // ここで長さを調整（秒単位）
-                ease: speed === "fast" ? "linear" : "circOut",    // 終わりの方をゆっくりにする
-                onUpdate: (latest) => {
-                // 数値が更新されるたびにテキストを書き換える（再レンダリングを避けるため直接DOM操作）
-                if (ref.current) {
-                    const value = isFloor ? Math.round(latest * 10) / 10 : Math.floor(latest);
-                    // カンマ抜き
-                    ref.current.textContent = value.toString();
-                }},
-            });
-            }
-        }, [isInView, number, motionValue, isFloor, speed]);
+        const newData: ChartData = Array.from(dataMap).map(([date, duration]) => ({
+            date: dayjs(date).format('M/D'),
+            duration: duration,
+        })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-        return (
-            <span
-            ref={ref}
-            className={`text-notch ${fontSize}`}
-            >
-            {number.toLocaleString()}
-            </span>
-        );
-    }
+        setMonthChartData(newData);
+    }, [monthData]);
+    
+    
+
+
     
     return (
         <section className="">
-            <div className="mx-auto max-w-4xl">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-                        ダッシュボード
-                    </h1>
-                    <p className="mt-2 text-sm text-slate-600">
-                        学習の進捗を確認しましょう
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
-                    <div className="rounded-2xl border border-slate-200/90 bg-white/95 p-6 shadow-[0_8px_32px_rgba(15,23,42,0.06)] backdrop-blur-md">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-slate-600">連続日数</p>
-                                <p className="mt-2 text-3xl font-bold text-slate-900">
-                                    <CountUpNumber number={onsecutiveDays} isFloor={false} speed="fast"/>
-                                </p>
-                                <p className="mt-1 text-xs text-slate-500"></p>
-                            </div>
-                            <FireIcon className="w-12 h-12 text-indigo-500" />
-                        </div>
-                    </div>
-
-                    <div className="rounded-2xl border border-slate-200/90 bg-white/95 p-6 shadow-[0_8px_32px_rgba(15,23,42,0.06)] backdrop-blur-md">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-slate-600">今週の学習時間</p>
-
-                                <p className="mt-2 text-3xl font-bold text-slate-900">
-                                    <CountUpNumber number={weekViewData} isFloor={true} speed="fast"/>
-                                </p>
-                                <p className="mt-1 text-xs text-slate-500">時間</p>
-                            </div>
-                            <ClockIcon className="w-12 h-12 text-sky-500" />
-                        </div>
-                    </div>
-
-                    <div className="rounded-2xl border border-slate-200/90 bg-white/95 p-6 shadow-[0_8px_32px_rgba(15,23,42,0.06)] backdrop-blur-md">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-slate-600">今月の学習時間</p>
-                                <p className="mt-2 text-3xl font-bold text-slate-900">
-                                    <CountUpNumber number={monthViewData} isFloor={true} speed="slow"/>
-                                </p>
-                                <p className="mt-1 text-xs text-slate-500">時間</p>
-                            </div>
-                            <ChartBarIcon className="w-12 h-12 text-emerald-500" />
-                        </div>
-                    </div>
-                </div>
+            <div className="mx-auto max-w-3xl">
+                <StatsSection
+                    onsecutiveDays={onsecutiveDays}
+                    weekViewData={weekViewData}
+                    monthViewData={monthViewData}
+                />
 
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                    <div className="rounded-2xl border border-slate-200/90 bg-white/95 p-6 shadow-[0_8px_32px_rgba(15,23,42,0.06)] backdrop-blur-md">
-                        <h2 className="text-lg font-semibold text-slate-900 mb-4">週間の学習時間</h2>
-                        <div className="flex items-end justify-between gap-2 h-48">
-                            {[ "日", "月", "火", "水", "木", "金", "土"].map((day) => (
-                                <div key={day} className="flex flex-col items-center flex-1">
-                                    <div className="w-full bg-gradient-to-t from-indigo-500 to-indigo-400 rounded-t-lg" style={{ height: "0%" }}></div>
-                                    <p className="text-xs text-slate-600 mt-2">{day}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+                    <ChartSection
+                        viewMode={viewMode}
+                        onViewModeChange={setViewMode}
+                        weekChartData={weekChartData}
+                        monthChartData={monthChartData}
+                    />
 
                     <div className="rounded-2xl border border-slate-200/90 bg-white/95 p-6 shadow-[0_8px_32px_rgba(15,23,42,0.06)] backdrop-blur-md">
                         <h2 className="text-lg font-semibold text-slate-900 mb-4">カテゴリ別の時間配分</h2>

@@ -246,15 +246,6 @@ export default function RecordsPage() {
     return (
         <section className="">
             <div className="mx-auto max-w-3xl">
-                <div className="mb-6">
-                    <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-                        学習時間記録
-                    </h1>
-                    <p className="mt-1 text-sm text-slate-600">
-                        日付・学習内容・学習時間を入力して保存します。
-                    </p>
-                </div>
-
                 <div className="rounded-2xl border border-slate-200/90 bg-white/95 p-5 shadow-[0_8px_32px_rgba(15,23,42,0.06)] backdrop-blur-md sm:p-7">
                     <form className="space-y-6" onSubmit={recordeCreateSubmit}>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

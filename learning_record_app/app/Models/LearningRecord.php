@@ -23,11 +23,14 @@ class LearningRecord extends Model
         'user_id',
         'total_duration',
         'study_date',
-        'memo',
     ];
 
     public function learningRecordDetails() {
         return $this->hasMany('App\Models\LearningRecordDetail');
+    }
+
+    public function learningMemos() {
+        return $this->hasMany('App\Models\LearningMemo');
     }
 
     public function registRecord($request, $user_id) {
@@ -37,7 +40,6 @@ class LearningRecord extends Model
             'user_id' => $user_id,
             'total_duration' => 0,
             'study_date' => $request->study_date,
-            'memo' => $request->memo,
         ]);
         return $uuid;
     }
