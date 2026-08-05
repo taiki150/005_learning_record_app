@@ -26,3 +26,12 @@ export async function GrafhApi(date:grafhPeriod) {
     
     return await res.json();
 }
+
+export async function CategoryRatio(date:grafhPeriod) {
+    const res = await apiWrapper(`${apiBaseUrl}/data/ratio`, {
+        method: 'POST',
+        body: JSON.stringify(date)
+    })
+    
+    return await res.json();
+}

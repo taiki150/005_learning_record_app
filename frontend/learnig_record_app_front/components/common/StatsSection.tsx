@@ -1,7 +1,7 @@
 'use client'
 
 import { memo, useRef, useEffect } from "react";
-import { animate, useInView, useMotionValue } from "framer-motion";
+import { animate, useInView, useMotionValue, useTransform, motion } from "framer-motion";
 import { FireIcon, ClockIcon, ChartBarIcon } from '@heroicons/react/24/outline';
 
 type CountUpNumberProps = {
@@ -9,6 +9,13 @@ type CountUpNumberProps = {
     fontSize?: string;
     isFloor?: boolean;
     speed?: "slow" | "medium" | "fast";
+};
+
+type categoryRatioSectionData = {
+    name: string;
+    ratio: number;
+    duration: number;
+    color: string;
 };
 
 const speedDuration = {
@@ -110,3 +117,43 @@ export const StatsSection = memo(function StatsSection({
         </div>
     );
 });
+
+export const CategoryRatioSection = memo(function CategoryRatioSection({name, ratio, duration, color}:categoryRatioSectionData) {
+    const ref = useRef<HTMLDivElement>(null);
+    const isInView = useInView(ref, { once: true });
+    const motionValue = useMotionValue(0);
+    const widthValue = useTransform(motionValue, value => `${value}%`);
+
+    useEffect(() => {
+        if (isInView) {
+            animate(motionValue, ratio, {
+                duration: 1.5,
+                ease: "circOut",
+            });
+        }
+    }, [isInView, ratio, motionValue]);
+
+    return(
+        <>
+            <div className="flex justify-between items-end">
+                <span className="text-sm font-medium text-slate-700">{name}</span>
+                <div className="text-right flex items-center gap-2">
+                    <span className="text-xs text-slate-500">
+                        <CountUpNumber number={ratio} isFloor={false} speed="fast"/>%
+                    </span>
+                    <span className="text-sm font-semibold text-slate-900">
+                        <CountUpNumber number={duration} isFloor={true} speed="slow"/>時間
+                    </span>
+                </div>
+                </div>
+                <div className="w-full bg-slate-200 rounded-full h-2.5" ref={ref}>
+                <motion.div
+                    className={`h-2.5 rounded-full`}
+                    style={{ width: widthValue, background: `${color}` }}
+                />
+            </div>
+        </>
+    );
+});
+
+CategoryRatioSection.displayName = 'CategoryRatioSection';
