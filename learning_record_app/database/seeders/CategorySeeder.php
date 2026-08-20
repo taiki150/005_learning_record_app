@@ -27,6 +27,7 @@ class CategorySeeder extends Seeder
                     'user_id'    => $user->id,
                     'name'       => $categoryData['name'],
                     'color_code' => $categoryData['color_code'],
+                    'delete_flg' => 0,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);

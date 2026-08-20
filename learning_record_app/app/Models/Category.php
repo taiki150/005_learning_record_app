@@ -20,5 +20,6 @@ class Category extends Model
             'user_id',
             'name',
             'color_code',
+            'delete_flg',
     ];
 }

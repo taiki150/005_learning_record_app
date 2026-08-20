@@ -145,11 +145,6 @@ export default function DashboardPage() {
 
         setMonthChartData(newData);
     }, [monthData]);
-
-
-    useEffect(() => {
-        console.log(categoryRatio);
-    }), [categoryRatio];
     
     return (
         <section className="">
