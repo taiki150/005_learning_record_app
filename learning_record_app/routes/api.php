@@ -31,9 +31,15 @@ Route::middleware([StartSession::class, 'auth:sanctum'])->group(function () {
     // カテゴリー取得API
     Route::get('/categories', [App\Http\Controllers\CategoryController::class, 'index']);
 
-    // カテゴリー取得API
+    // レコード登録
     Route::post('/record', [App\Http\Controllers\LearningRecordController::class, 'store']);
 
     
-
+    /* ここからData取得API */
+    Route::post('data/record',
+    [App\Http\Controllers\LearningRecordController::class, 'getData']);
+    Route::post('data/consecutive',
+    [App\Http\Controllers\LearningRecordController::class, 'getConsecutiveData']);
+    Route::post('data/ratio',
+    [App\Http\Controllers\LearningRecordController::class, 'getCategoryRatio']);
 });
