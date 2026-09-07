@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Models\Category;
 use App\Models\LearningRecord;
 use Tests\TestCase;
-use Tests\data\LearningRequestData;
+use Tests\Data\LearningRequestData;
 
 class LearningRecordStoreTest extends TestCase
 {
@@ -14,11 +14,15 @@ class LearningRecordStoreTest extends TestCase
     public function test_learning_record_stored()
     {
 
-        /**
-         * フラグ管理
-         *  $user_create_flg true -> テストごとにユーザー作成 | false -> 既存のユーザー使用
-         *  $category_create_flg true -> テストごとにカテゴリー作成 | false -> 既存のカテゴリー使用
-         */
+        /** *****************************************
+         * ①カスタムエリア（フラグ）
+         ** *****************************************
+         * @var 
+         * - $user_create_flg : true =  factoryからユーザーの作成を行う（テスト毎）
+         *                      false = 既存のユーザーの使用（find(**)で指定可能）
+         * - $category_create_flg : true = factoryからカテゴリーの作成を行う（テスト毎）
+         *                          false = 既存カテゴリーの使用（ログイン中のユーザーのカテゴリーデータ（$user）が必須）
+         * *******************************************/
         $user_create_flg = true;
         $category_create_flg = true;
 
@@ -32,37 +36,38 @@ class LearningRecordStoreTest extends TestCase
         $user = $user_create_flg ? User::factory()->create() : User::find(1);
         if($category_create_flg){
             $categories = Category::factory()->forUser($user)->count(10)->create();
-
+        }else{
+            $categories = Category::where('user_id', $user->id)->get();
         }
-
         $this->actingAs($user);
 
-        $categoryIds = [
-            (string)$categories[4]->id,
-            (string)$categories[6]->id
-        ];
-
-        /**
+        /** *****************************************
+         * ②カスタムエリア（リクエストデータ）
+         ** *****************************************
          * @var array{
          * random: bool, 
-         * custom: array{
-         *      study_date: string,
-         *      hours: int,
-         *      minute: int,
-         *      category_id: array<int>,
-         *      ratio: array<int, int>,
-         *      memo: string
-         *  }
+         * custom: array {
+         *          study_date: string,
+         *          hours: int,
+         *          minute: int,
+         *          category_id: array<int>,
+         *          ratio: array<int, int>,
+         *          memo: string
+         *      }
          * }
          * テストリクエストデータの設定配列
          * - random: true = ランダムなテストデータを生成、false = customで指定したデータを使用
          * - custom: APIに送信するカスタムリクエストデータ（random=falseの時に使用）
-        */
+         * 
+         * コマンド：```
+         * docker compose exec php php artisan test tests/Feature/LearningRecordStoreTest.php
+         * ```
+         * *******************************************/
         $requestDataArray = [
             // 正常テスト（エラーなし）
-            'random' => true, 
+            'random' => true,
 
-            // カスタムリクエストデータ（正常 or エラーテスト ）
+            // カスタムリクエストデータ（正常 or エラーテスト | 'random' => false,に変更して使用 ）
              'custom' => [
                 'study_date' => '2026-09-01',
                 'hours' => 2,
@@ -78,6 +83,10 @@ class LearningRecordStoreTest extends TestCase
                 'memo' => 'テストです。',
             ],
          ];
+
+        /* *******************************************
+         * カスタムエリア ここまで
+         * *******************************************/
 
         $requestData = $requestDataArray['random'] ? 
             LearningRequestData::createRequestData($categories) : $requestDataArray['custom'];
@@ -108,7 +117,7 @@ class LearningRecordStoreTest extends TestCase
                 'learning_record_id' => $learningRecord->id,
                 'category_id' => $categoryId,
                 'ratio' => $requestData['ratio'][$categoryId],
-                'deuration' => $total_duration * ($requestData['ratio'][$categoryId] / 100),
+                'deuration' => round($total_duration * ($requestData['ratio'][$categoryId] / 100), 2),
             ]);
         }
     }
