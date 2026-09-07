@@ -5,8 +5,8 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Models\Category;
 use App\Models\LearningRecord;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use Tests\data\LearningRequestData;
 
 class LearningRecordStoreTest extends TestCase
 {
@@ -42,19 +42,45 @@ class LearningRecordStoreTest extends TestCase
             (string)$categories[6]->id
         ];
 
-        
-        // リクエストデータ
-        $requestData = [
-            'study_date' => '2026-09-01',
-            'hours' => 2,
-            'minute' => 30,
-            'category_id' => $categoryIds,
-            'ratio' => [
-                $categoryIds[0] => 20,
-                $categoryIds[1] => 80,
+        /**
+         * @var array{
+         * random: bool, 
+         * custom: array{
+         *      study_date: string,
+         *      hours: int,
+         *      minute: int,
+         *      category_id: array<int>,
+         *      ratio: array<int, int>,
+         *      memo: string
+         *  }
+         * }
+         * テストリクエストデータの設定配列
+         * - random: true = ランダムなテストデータを生成、false = customで指定したデータを使用
+         * - custom: APIに送信するカスタムリクエストデータ（random=falseの時に使用）
+        */
+        $requestDataArray = [
+            // 正常テスト（エラーなし）
+            'random' => true, 
+
+            // カスタムリクエストデータ（正常 or エラーテスト ）
+             'custom' => [
+                'study_date' => '2026-09-01',
+                'hours' => 2,
+                'minute' => 30,
+                'category_id' => [
+                    $categories[4]->id,
+                    $categories[6]->id,
+                ],
+                'ratio' => [
+                    $categories[4]->id => 20,
+                    $categories[6]->id => 80,
+                ],
+                'memo' => 'テストです。',
             ],
-            'memo' => 'テストです。',
-        ];
+         ];
+
+        $requestData = $requestDataArray['random'] ? 
+            LearningRequestData::createRequestData($categories) : $requestDataArray['custom'];
 
         $response = $this->postJson('/api/record', $requestData);
 
@@ -77,18 +103,13 @@ class LearningRecordStoreTest extends TestCase
         ->first();
 
         // DBの検証②（子：learning_record_details）
-        for ($i=0; $i < count($requestData['category_id']); $i++) { 
+        foreach ($requestData['category_id'] as $categoryId) {
             $this->assertDatabaseHas('learning_record_details', [
                 'learning_record_id' => $learningRecord->id,
-                'category_id' => $requestData['category_id'][$i],
-                'ratio' => $requestData['ratio'][$i],
-                'deuration' => $total_duration * ($requestData['ratio'][$i] / 100),
+                'category_id' => $categoryId,
+                'ratio' => $requestData['ratio'][$categoryId],
+                'deuration' => $total_duration * ($requestData['ratio'][$categoryId] / 100),
             ]);
         }
-
-
-        
-        // Assert（検証）
-        // 結果が正しいか確認
     }
 }
