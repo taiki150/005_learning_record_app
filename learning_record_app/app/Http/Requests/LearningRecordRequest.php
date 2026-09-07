@@ -26,6 +26,7 @@ class LearningRecordRequest extends FormRequest
             'study_date' => ['required', 'date'],
             'hours' => ['required', 'integer', 'min:0', 'max:24'],
             'minute' => ['required', 'integer', 'min:0', 'max:59'],
+            'ratio' => ['required', 'array'],
             'category_id' => ['required', 'array'],
             'category_id.*' => ['required', 'string', 'exists:categories,id'],
             'memo' => ['nullable', 'string', 'max:1000'],

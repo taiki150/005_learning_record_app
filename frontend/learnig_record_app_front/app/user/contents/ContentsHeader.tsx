@@ -81,7 +81,7 @@ export function ContentsHeader() {
                             isPathActive(pathname, "/user/contents/dashboard"),
                         )}
                     >
-                        Home
+                        Dashboard
                     </Link>
                     <Link
                         href="/user/contents/records"
@@ -93,7 +93,7 @@ export function ContentsHeader() {
                     </Link>
 
                     <Link
-                        href="/user/contents/records"
+                        href="/user/contents/setting"
                         className={navItemClass(
                             isPathActive(pathname, "/user/contents/setting"),
                         ) + " group"}
