@@ -46,15 +46,12 @@ export default function DashboardPage() {
         .then(([week, month, onsecutiveDays]) => {
             setWeekData(week);
             setMonthData(month);
-            setConsecutiveDays(onsecutiveDays);
+            setConsecutiveDays(onsecutiveDays.onsecutiveDays);
         })
         .catch((err) => {
             console.log("通信エラーが発生しました:", err);
         });
     }, []);
-
-    console.log(monthData);
-    console.log(onsecutiveDays);
 
     const CountUpNumber = ({
         number,
