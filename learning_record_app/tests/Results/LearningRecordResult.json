@@ -1,0 +1,26 @@
+{
+  "test_results": [
+    {
+      "test_case_name": "正常系：2カテゴリー",
+      "result": "PASS",
+      "error_message": null,
+      "execution_time": 0.47,
+      "timestamp": "2026-09-07 12:34:56",
+      "request_data": {
+        "study_date": "2026-09-01",
+        "hours": 2,
+        "minute": 30,
+        "category_id": ["uuid1", "uuid2"],
+        "ratio": {"uuid1": 20, "uuid2": 80}
+      }
+    },
+    {
+      "test_case_name": "NG：study_dateなし",
+      "result": "FAIL",
+      "error_message": "Required field missing: study_date",
+      "execution_time": 0.23,
+      "timestamp": "2026-09-07 12:34:57",
+      "request_data": {...}
+    }
+  ]
+}
