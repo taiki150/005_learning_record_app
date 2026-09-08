@@ -3,6 +3,10 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\LearningRecordController;
+use App\Http\Controllers\GithubRepositoryController;
+use App\Http\Controllers\CategoryController;
 use Illuminate\Session\Middleware\StartSession;
 
 // 認証なしで使用可能なエンドポイント
@@ -23,23 +27,22 @@ Route::middleware([StartSession::class])->group(function () {
 // 認証が必要なエンドポイント
 Route::middleware([StartSession::class, 'auth:sanctum'])->group(function () {
     // セッション確認API
-    Route::get('/user', [App\Http\Controllers\Auth\AuthenticatedSessionController::class, 'sessionCheck']);
+    Route::get('/user', [AuthenticatedSessionController::class, 'sessionCheck']);
 
     // ログアウト
-    Route::post('/logout', [App\Http\Controllers\Auth\AuthenticatedSessionController::class, 'destroy']);
+    Route::post('/logout', [AuthenticatedSessionController::class, 'destroy']);
 
     // カテゴリー取得API
-    Route::get('/categories', [App\Http\Controllers\CategoryController::class, 'index']);
+    Route::get('/categories', [CategoryController::class, 'index']);
 
-    // レコード登録
-    Route::post('/record', [App\Http\Controllers\LearningRecordController::class, 'store']);
+    // カテゴリー取得API
+    Route::post('/record', [LearningRecordController::class, 'store']);
 
     
     /* ここからData取得API */
-    Route::post('data/record',
-    [App\Http\Controllers\LearningRecordController::class, 'getData']);
-    Route::post('data/consecutive',
-    [App\Http\Controllers\LearningRecordController::class, 'getConsecutiveData']);
-    Route::post('data/ratio',
-    [App\Http\Controllers\LearningRecordController::class, 'getCategoryRatio']);
+    Route::post('data/record',[LearningRecordController::class, 'getData']);
+    Route::post('data/consecutive',[LearningRecordController::class, 'getConsecutiveData']);
+
+    Route::post('/github/repositories', [GithubRepositoryController::class, 'store']);
+
 });
