@@ -61,4 +61,9 @@ class User extends Authenticatable
             'birthday' => 'date',
         ];
     }
+
+    public function githubRepositories()
+    {
+        return $this->hasMany(GithubRepository::class);
+    }
 }
