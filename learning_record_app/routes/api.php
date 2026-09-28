@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\GithubAuthController;
 use App\Http\Controllers\LearningRecordController;
 use App\Http\Controllers\GithubRepositoryController;
 use App\Http\Controllers\CategoryController;
@@ -22,10 +23,14 @@ Route::middleware([StartSession::class])->group(function () {
             'csrf-token' => csrf_token(),
         ]);
     });
+
+    // GitHub OAuth（認証なしで使用可能）
+    Route::get('/auth/github/redirect', [GithubAuthController::class, 'redirect']);
+    Route::get('/auth/github/callback', [GithubAuthController::class, 'callback']);
 });
 
 // 認証が必要なエンドポイント
-Route::middleware([StartSession::class, 'auth:sanctum'])->group(function () {
+Route::middleware(['auth:sanctum'])->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class)->group(function () {
     // セッション確認API
     Route::get('/user', [AuthenticatedSessionController::class, 'sessionCheck']);
 
@@ -42,7 +47,14 @@ Route::middleware([StartSession::class, 'auth:sanctum'])->group(function () {
     /* ここからData取得API */
     Route::post('data/record',[LearningRecordController::class, 'getData']);
     Route::post('data/consecutive',[LearningRecordController::class, 'getConsecutiveData']);
+    Route::post('data/ratio',[LearningRecordController::class, 'getCategoryRatio']);
 
+    /* GitHub リポジトリAPI */
+    Route::get('/github/repositories', [GithubRepositoryController::class, 'index']);
+    Route::get('/github/repositories/registered', [GithubRepositoryController::class, 'registered']);
     Route::post('/github/repositories', [GithubRepositoryController::class, 'store']);
+    Route::post('/github/repositories/register', [GithubRepositoryController::class, 'registerRepository']);
+    Route::post('/github/repositories/test-languages', [GithubRepositoryController::class, 'testFetchLanguages']);
+    Route::post('/github/repositories/auto-classify', [GithubRepositoryController::class, 'autoClassifyCategories']);
 
 });

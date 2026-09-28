@@ -17,7 +17,8 @@ class GithubRepository extends Model
         'repo_name',
         'branch',
         'access_token',
-        'last_synced_at'
+        'last_synced_at',
+        'is_registered'
     ];
 
     protected $hidden = ['access_token'];

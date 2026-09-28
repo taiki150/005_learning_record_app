@@ -13,13 +13,21 @@ class Category extends Model
 {
     use HasFactory, HasUuids;
 
-    public function user() {
-        return $this->belongsTo('App\Models\User');
-    }
-        protected $fillable = [
-            'user_id',
-            'name',
-            'color_code',
-            'delete_flg',
+    protected $fillable = [
+        'user_id',
+        'name',
+        'color_code',
+        'delete_flg',
+        'github_repository_id',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function githubRepository()
+    {
+        return $this->belongsTo(GithubRepository::class);
+    }
 }

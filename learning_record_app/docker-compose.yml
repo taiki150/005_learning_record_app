@@ -13,11 +13,17 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
+      args:
+        USER_ID: 501
+        GROUP_ID: 20
+    user: "501:20"
     ports:
       # Vite dev server (npm run dev) — must reach host localhost:5173 when public/hot exists
       - "5173:5173"
     volumes:
       - .:/var/www/html
+      - php_storage_logs:/var/www/html/storage/logs
+      - php_bootstrap_cache:/var/www/html/bootstrap/cache
     environment:
       - DB_HOST=mariadb
       - DB_PORT=3306
@@ -39,3 +45,5 @@ services:
 
 volumes:
   mariadb_data:
+  php_storage_logs:
+  php_bootstrap_cache:

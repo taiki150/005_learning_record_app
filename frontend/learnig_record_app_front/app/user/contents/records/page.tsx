@@ -9,11 +9,19 @@ const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 type Category = {
     id: string;
-    name: string; 
+    name: string;
+};
+
+type Repository = {
+    owner: string;
+    repo_name: string;
+    url: string;
+    is_private: boolean;
+    is_registered?: boolean;
 };
 
 export default function RecordsPage() {
-    
+
     const [hours, setHours] = useState(0);
     const [minutes, setMinutes] = useState(0);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -21,6 +29,9 @@ export default function RecordsPage() {
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [ratio, setRatio] = useState<number[]>([]);
     const [lockedIndices, setLockedIndices] = useState<number[]>([]);
+    const [isRepositoryDialogOpen, setIsRepositoryDialogOpen] = useState(false);
+    const [repositories, setRepositories] = useState<Repository[]>([]);
+    const [loadingRepos, setLoadingRepos] = useState(false);
 
     const [isChecked, setIsChecked] = useState(false);
 
@@ -193,6 +204,67 @@ export default function RecordsPage() {
 
     function handleRemoveCategory(categoryId: string) {
         setSelectedCategories(prev => prev.filter(id => id !== categoryId));
+    }
+
+    async function fetchRepositories() {
+        setLoadingRepos(true);
+        try {
+            const res = await apiWrapper(`${apiBaseUrl}/github/repositories/registered`, {
+                method: 'GET',
+            });
+            const repos = await res.json();
+            setRepositories(repos);
+            setIsRepositoryDialogOpen(true);
+        } catch (error) {
+            console.error('リポジトリ取得エラー:', error);
+            toast.error('リポジトリの取得に失敗しました');
+        } finally {
+            setLoadingRepos(false);
+        }
+    }
+
+    async function registerRepository(owner: string, repoName: string) {
+        try {
+            const res = await apiWrapper(`${apiBaseUrl}/github/repositories/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ owner, repo_name: repoName })
+            });
+
+            if (!res.ok) {
+                const error = await res.json();
+                throw new Error(error.error || '登録に失敗しました');
+            }
+
+            toast.success('リポジトリを登録しました');
+            await fetchRepositories();
+        } catch (error) {
+            console.error('登録エラー:', error);
+            toast.error(error instanceof Error ? error.message : '登録に失敗しました');
+        }
+    }
+
+    async function autoClassifyFromRepository(owner: string, repoName: string) {
+        try {
+            const res = await apiWrapper(`${apiBaseUrl}/github/repositories/auto-classify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ owner, repo_name: repoName })
+            });
+            const data = await res.json();
+
+            if (data.categories && data.categories.length > 0) {
+                const newCategoryIds = data.categories.map((c: Category) => c.id);
+                setSelectedCategories(prev => [...new Set([...prev, ...newCategoryIds])]);
+                setIsRepositoryDialogOpen(false);
+                toast.success(`${data.categories.length}個のカテゴリを自動分類しました`);
+            } else {
+                toast.error('言語が検出されませんでした');
+            }
+        } catch (error) {
+            console.error('自動分類エラー:', error);
+            toast.error('自動分類に失敗しました');
+        }
     }
 
     function handleRatioChange(changedIndex: number, newValue: number){
@@ -369,8 +441,8 @@ export default function RecordsPage() {
                                     value={selectedCategories.join(',')} 
                                     />
                             </div>
-                            <div className="text-center mt-3">
-                                <button 
+                            <div className="text-center mt-3 flex gap-2 flex-wrap justify-center">
+                                <button
                                     type="button"
                                     onClick={() => setIsPopupOpen(!isPopupOpen)}
                                     className="group inline-block text-[12px] font-medium text-indigo-500 cursor-pointer transition-[0.5s] hover:text-indigo-300"
@@ -380,6 +452,19 @@ export default function RecordsPage() {
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="ml-1 bi bi-grid-fill transition-transform duration-300 group-hover:rotate-90" viewBox="0 0 16 16">
                                             <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5z"/>
                                         </svg>
+                                    </div>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={fetchRepositories}
+                                    disabled={loadingRepos}
+                                    className="group inline-block text-[12px] font-medium text-indigo-500 cursor-pointer transition-[0.5s] hover:text-indigo-300 disabled:opacity-50"
+                                >
+                                    <div className="flex items-center gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                                        </svg>
+                                        <span>リポジトリから自動分類</span>
                                     </div>
                                 </button>
                             </div>
@@ -506,6 +591,61 @@ export default function RecordsPage() {
                             </div>
                         )}
 
+                        {isRepositoryDialogOpen && (
+                            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                                <div className="bg-white rounded-lg p-6 w-[75%] max-h-[60vh] overflow-y-auto">
+                                    <h2 className="text-lg font-bold mb-4">リポジトリから自動分類</h2>
+                                    {loadingRepos ? (
+                                        <p className="text-center text-slate-600">読み込み中...</p>
+                                    ) : repositories.length === 0 ? (
+                                        <p className="text-center text-slate-600">利用可能なリポジトリがありません</p>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {repositories.map((repo) => (
+                                                <div
+                                                    key={`${repo.owner}/${repo.repo_name}`}
+                                                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors border border-slate-200"
+                                                >
+                                                    <div className="flex-1">
+                                                        <p className="font-medium text-slate-900">{repo.repo_name}</p>
+                                                        <p className="text-xs text-slate-500">{repo.owner}</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        {repo.is_private && (
+                                                            <span className="text-xs px-2 py-1 bg-slate-200 text-slate-700 rounded">Private</span>
+                                                        )}
+                                                        {repo.is_registered ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => autoClassifyFromRepository(repo.owner, repo.repo_name)}
+                                                                className="px-3 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer"
+                                                            >
+                                                                使用する
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => registerRepository(repo.owner, repo.repo_name)}
+                                                                className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
+                                                            >
+                                                                登録する
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsRepositoryDialogOpen(false)}
+                                        className="mt-4 w-full bg-slate-500 text-white px-3 py-2 rounded cursor-pointer transition-[0.5s] hover:bg-slate-400"
+                                    >
+                                        キャンセル
+                                    </button>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="space-y-2">
                             <label className="block text-sm font-medium text-slate-800" htmlFor="notes">メモ（任意）</label>
