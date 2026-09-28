@@ -5,6 +5,9 @@ import { StatsSection, CategoryRatioSection } from "../../../../components/commo
 import { useEffect, useState } from "react";
 import dayjs from 'dayjs';
 
+type SectionType = 'stats' | 'chart' | 'category' | 'goal';
+type SectionOrder = SectionType[];
+
 type RecordData = {
     recordData: {
         id?: string,
@@ -57,6 +60,53 @@ export default function DashboardPage() {
     const [weekChartData, setWeekChartData] = useState<ChartData>([]);
     const [monthChartData, setMonthChartData] = useState<ChartData>([]);
     const [categoryRatio, setCategoryRatio] = useState<CategoryData>([]);
+    const [isMobile, setIsMobile] = useState(true);
+    const [sectionOrder, setSectionOrder] = useState<SectionOrder>(['stats', 'chart', 'category', 'goal']);
+    const [draggedSection, setDraggedSection] = useState<SectionType | null>(null);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    useEffect(() => {
+        const savedOrder = localStorage.getItem('dashboard-section-order');
+        if (savedOrder) {
+            try {
+                setSectionOrder(JSON.parse(savedOrder));
+            } catch (error) {
+                console.error('Failed to restore section order:', error);
+            }
+        }
+    }, []);
+
+    const handleDragStart = (section: SectionType) => {
+        setDraggedSection(section);
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleDrop = (targetSection: SectionType) => {
+        if (!draggedSection || draggedSection === targetSection) {
+            setDraggedSection(null);
+            return;
+        }
+
+        const newOrder = [...sectionOrder];
+        const draggedIndex = newOrder.indexOf(draggedSection);
+        const targetIndex = newOrder.indexOf(targetSection);
+
+        [newOrder[draggedIndex], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[draggedIndex]];
+
+        setSectionOrder(newOrder);
+        localStorage.setItem('dashboard-section-order', JSON.stringify(newOrder));
+        setDraggedSection(null);
+    };
 
     // 初期状態のデータ取得
     useEffect(() => {
@@ -146,57 +196,109 @@ export default function DashboardPage() {
         setMonthChartData(newData);
     }, [monthData]);
     
+    const renderSection = (sectionType: SectionType) => {
+        const isDraggable = !isMobile;
+        const dragClass = isDraggable ? 'cursor-move hover:shadow-[0_12px_40px_rgba(15,23,42,0.12)]' : '';
+
+        switch (sectionType) {
+            case 'stats':
+                return (
+                    <div
+                        key="stats"
+                        draggable={isDraggable}
+                        onDragStart={() => handleDragStart('stats')}
+                        onDragOver={handleDragOver}
+                        onDrop={() => handleDrop('stats')}
+                        className={dragClass}
+                    >
+                        <StatsSection
+                            onsecutiveDays={onsecutiveDays}
+                            weekViewData={weekViewData}
+                            monthViewData={monthViewData}
+                        />
+                    </div>
+                );
+            case 'chart':
+                return (
+                    <div
+                        key="chart"
+                        draggable={isDraggable}
+                        onDragStart={() => handleDragStart('chart')}
+                        onDragOver={handleDragOver}
+                        onDrop={() => handleDrop('chart')}
+                        className={dragClass}
+                    >
+                        <ChartSection
+                            viewMode={viewMode}
+                            onViewModeChange={setViewMode}
+                            weekChartData={weekChartData}
+                            monthChartData={monthChartData}
+                        />
+                    </div>
+                );
+            case 'category':
+                return (
+                    <div
+                        key="category"
+                        draggable={isDraggable}
+                        onDragStart={() => handleDragStart('category')}
+                        onDragOver={handleDragOver}
+                        onDrop={() => handleDrop('category')}
+                        className={dragClass}
+                    >
+                        <div className="rounded-2xl border border-slate-200/90 bg-white/95 p-6 shadow-[0_8px_32px_rgba(15,23,42,0.06)] backdrop-blur-md">
+                            <div className="mb-4">
+                                <h2 className="text-lg font-semibold text-slate-900 mb-2">カテゴリ別の時間配分</h2>
+                                <p className="text-sm text-slate-600">今週の合計:
+                                    <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-1 rounded">
+                                        {weekViewData}時間
+                                    </span>
+                                </p>
+                            </div>
+                            <div className="space-y-4">
+                                {categoryRatio.filter((data) => data.ratio > 0).map((data, index) => (
+                                    <div key={index} className="space-y-2">
+                                        <CategoryRatioSection name={data.name} ratio={data.ratio} duration={Math.round((data.duration)/60 * 10) / 10} color={data.color} />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                );
+            case 'goal':
+                return (
+                    <div
+                        key="goal"
+                        draggable={isDraggable}
+                        onDragStart={() => handleDragStart('goal')}
+                        onDragOver={handleDragOver}
+                        onDrop={() => handleDrop('goal')}
+                        className={dragClass}
+                    >
+                        <div className="rounded-2xl border border-slate-200/90 bg-white/95 p-6 shadow-[0_8px_32px_rgba(15,23,42,0.06)] backdrop-blur-md">
+                            <h2 className="text-lg font-semibold text-slate-900 mb-4">今月の目標進捗</h2>
+                            <div className="flex items-end gap-4">
+                                <div className="flex-1">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className="text-sm font-medium text-slate-700">目標: 50時間</p>
+                                        <p className="text-sm font-bold text-indigo-600">0%</p>
+                                    </div>
+                                    <div className="w-full bg-slate-200 rounded-full h-3">
+                                        <div className="bg-gradient-to-r from-indigo-500 to-indigo-400 h-3 rounded-full" style={{ width: "0%" }}></div>
+                                    </div>
+                                </div>
+                                <p className="text-2xl font-bold text-slate-900">0.0/50</p>
+                            </div>
+                        </div>
+                    </div>
+                );
+        }
+    };
+
     return (
         <section className="">
-            <div className="mx-auto max-w-3xl">
-                <StatsSection
-                    onsecutiveDays={onsecutiveDays}
-                    weekViewData={weekViewData}
-                    monthViewData={monthViewData}
-                />
-
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                    <ChartSection
-                        viewMode={viewMode}
-                        onViewModeChange={setViewMode}
-                        weekChartData={weekChartData}
-                        monthChartData={monthChartData}
-                    />
-
-                    <div className="rounded-2xl border border-slate-200/90 bg-white/95 p-6 shadow-[0_8px_32px_rgba(15,23,42,0.06)] backdrop-blur-md">
-                        <div className="mb-4">
-                          <h2 className="text-lg font-semibold text-slate-900 mb-2">カテゴリ別の時間配分</h2>
-                          <p className="text-sm text-slate-600">今週の合計: 
-                            <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-1 rounded">
-                                {weekViewData}時間
-                            </span>
-                        </p>
-                        </div>
-                        <div className="space-y-4">
-                        {categoryRatio.filter((data) => data.ratio > 0).map((data, index) => (
-                            <div key={index} className="space-y-2">
-                                <CategoryRatioSection name={data.name} ratio={data.ratio} duration={Math.round((data.duration)/60 * 10) / 10} color={data.color} />
-                            </div>
-                        ))}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="mt-6 rounded-2xl border border-slate-200/90 bg-white/95 p-6 shadow-[0_8px_32px_rgba(15,23,42,0.06)] backdrop-blur-md">
-                    <h2 className="text-lg font-semibold text-slate-900 mb-4">今月の目標進捗</h2>
-                    <div className="flex items-end gap-4">
-                        <div className="flex-1">
-                            <div className="flex items-center justify-between mb-2">
-                                <p className="text-sm font-medium text-slate-700">目標: 50時間</p>
-                                <p className="text-sm font-bold text-indigo-600">0%</p>
-                            </div>
-                            <div className="w-full bg-slate-200 rounded-full h-3">
-                                <div className="bg-gradient-to-r from-indigo-500 to-indigo-400 h-3 rounded-full" style={{ width: "0%" }}></div>
-                            </div>
-                        </div>
-                        <p className="text-2xl font-bold text-slate-900">0.0/50</p>
-                    </div>
-                </div>
+            <div className="mx-auto max-w-3xl space-y-6">
+                {sectionOrder.map(section => renderSection(section))}
             </div>
         </section>
     );
