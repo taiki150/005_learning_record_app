@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\GithubAuthController;
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\LearningRecordController;
 use App\Http\Controllers\GithubRepositoryController;
 use App\Http\Controllers\CategoryController;
@@ -27,12 +28,19 @@ Route::middleware([StartSession::class])->group(function () {
     // GitHub OAuth（認証なしで使用可能）
     Route::get('/auth/github/redirect', [GithubAuthController::class, 'redirect']);
     Route::get('/auth/github/callback', [GithubAuthController::class, 'callback']);
+
+    // Google OAuth（認証なしで使用可能）
+    Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect']);
+    Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback']);
 });
 
 // 認証が必要なエンドポイント
 Route::middleware(['auth:sanctum'])->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class)->group(function () {
     // セッション確認API
     Route::get('/user', [AuthenticatedSessionController::class, 'sessionCheck']);
+
+    // プロフィール完成（生年月日入力）
+    Route::post('/user/complete-profile', [AuthenticatedSessionController::class, 'completeProfile']);
 
     // ログアウト
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy']);

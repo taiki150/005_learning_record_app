@@ -2,6 +2,7 @@
 import { GrafhApi, ConsecutiveApi, CategoryRatio } from "../../../../components/api/GrafhApi";
 import { ChartSection } from "../../../../components/common/ChartSection";
 import { StatsSection, CategoryRatioSection } from "../../../../components/common/StatsSection";
+import { ShimmerCard, ShimmerChart, ShimmerCategoryList, ShimmerGoal } from "../../../../components/common/Shimmer";
 import { useEffect, useState } from "react";
 import dayjs from 'dayjs';
 
@@ -63,6 +64,7 @@ export default function DashboardPage() {
     const [isMobile, setIsMobile] = useState(true);
     const [sectionOrder, setSectionOrder] = useState<SectionOrder>(['stats', 'chart', 'category', 'goal']);
     const [draggedSection, setDraggedSection] = useState<SectionType | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -110,21 +112,24 @@ export default function DashboardPage() {
 
     // 初期状態のデータ取得
     useEffect(() => {
+        setIsLoading(true);
         Promise.all([
             GrafhApi({ start_date: startOfThisWeek, end_date: endOfThisWeek }),
             GrafhApi({ start_date: startOfThisMonth, end_date: endOfThisMonth }),
             ConsecutiveApi(now),
             CategoryRatio({ start_date: startOfThisWeek, end_date: endOfThisWeek }),
-            
+
         ])
         .then(([week, month, onsecutiveDays, categoryDatas]) => {
             setWeekData(week);
             setMonthData(month);
             setConsecutiveDays(onsecutiveDays.onsecutiveDays);
             setCategoryRatio(categoryDatas);
+            setIsLoading(false);
         })
         .catch((err) => {
             console.log("通信エラーが発生しました:", err);
+            setIsLoading(false);
         });
     }, []);
 
@@ -199,6 +204,25 @@ export default function DashboardPage() {
     const renderSection = (sectionType: SectionType) => {
         const isDraggable = !isMobile;
         const dragClass = isDraggable ? 'cursor-move hover:shadow-[0_12px_40px_rgba(15,23,42,0.12)]' : '';
+
+        if (isLoading) {
+            switch (sectionType) {
+                case 'stats':
+                    return (
+                        <div key="stats" className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
+                            {Array.from({ length: 3 }).map((_, i) => (
+                                <ShimmerCard key={i} />
+                            ))}
+                        </div>
+                    );
+                case 'chart':
+                    return <ShimmerChart key="chart" />;
+                case 'category':
+                    return <ShimmerCategoryList key="category" />;
+                case 'goal':
+                    return <ShimmerGoal key="goal" />;
+            }
+        }
 
         switch (sectionType) {
             case 'stats':
@@ -292,6 +316,8 @@ export default function DashboardPage() {
                         </div>
                     </div>
                 );
+            default:
+                return null;
         }
     };
 

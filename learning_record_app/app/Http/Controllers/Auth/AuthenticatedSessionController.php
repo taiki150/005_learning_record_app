@@ -75,4 +75,33 @@ class AuthenticatedSessionController extends Controller
             ],
         ], 200);
     }
+
+    /**
+     * Complete user profile (birthday)
+     */
+    public function completeProfile(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'Unauthenticated',
+            ], 401);
+        }
+
+        $validated = $request->validate([
+            'birthday' => 'required|date',
+        ]);
+
+        $user->update(['birthday' => $validated['birthday']]);
+
+        return response()->json([
+            'message' => 'プロフィールを更新しました',
+            'user' => [
+                'email' => $user->email,
+                'name' => $user->name,
+                'birthday' => $user->birthday,
+            ],
+        ], 200);
+    }
 }

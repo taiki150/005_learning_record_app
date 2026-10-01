@@ -76,16 +76,19 @@ export default function SettingPage() {
                 apiWrapper(`${apiBaseUrl}/github/repositories/registered`, { method: 'GET' }).then(res => res.json())
             ])
             .then(([allRepos, registeredRepos]) => {
-                setGithubRepositories(allRepos);
+                const reposArray = Array.isArray(allRepos) ? allRepos : [];
+                setGithubRepositories(reposArray);
 
                 // 登録済みリポジトリをフィルタリング
-                const registeredKeys = registeredRepos.map((repo: any) => `${repo.owner}/${repo.repo_name}`);
+                const registeredArray = Array.isArray(registeredRepos) ? registeredRepos : [];
+                const registeredKeys = registeredArray.map((repo: any) => `${repo.owner}/${repo.repo_name}`);
                 setSelectedRepos(new Set(registeredKeys));
 
                 setLoadingRepos(false);
             })
             .catch(error => {
                 console.error('GitHub リポジトリ取得エラー:', error);
+                setGithubRepositories([]);
                 setLoadingRepos(false);
             });
         }
@@ -162,6 +165,7 @@ export default function SettingPage() {
                                         <input
                                             type="text"
                                             value={userProfileData.name}
+                                            onChange={(e) => setUserProfileData({...userProfileData, name: e.target.value})}
                                             className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                         />
                                     </div>
@@ -170,6 +174,7 @@ export default function SettingPage() {
                                         <input
                                             type="email"
                                             value={userProfileData.email}
+                                            onChange={(e) => setUserProfileData({...userProfileData, email: e.target.value})}
                                             className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                         />
                                     </div>
